@@ -224,10 +224,12 @@ class vector {
   }
   iterator insert(iterator pos, const T& value) {
     const auto offset = pos - begin();
-    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value), [&](auto&& i) {
-        using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-        auto local_pos = boost::fusion::at_key<key>(data_).begin() + offset;
-        boost::fusion::at_key<key>(data_).insert(local_pos, boost::fusion::at_c<1>(i));
+    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
+                            [&](auto&& i) {
+      using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
+      auto local_pos = boost::fusion::at_key<key>(data_).begin() + offset;
+      boost::fusion::at_key
+          <key>(data_).insert(local_pos, boost::fusion::at_c<1>(i));
     });
   }
   // iterator insert( const_iterator pos, const T& value );
@@ -241,34 +243,34 @@ class vector {
   iterator erase(iterator pos) {
     const auto offset = pos - begin();
     boost::fusion::for_each(data_, [&](auto&& i) {
-        auto local_pos = i.second.cbegin() + offset;
-        i.second.erase(local_pos);
-      });
+      auto local_pos = i.second.cbegin() + offset;
+      i.second.erase(local_pos);
+    });
   }
   iterator erase(iterator first, iterator last) {
     const auto first_offset = first - begin();
     const auto last_offset = last - begin();
     boost::fusion::for_each(data_, [&](auto&& i) {
-        auto local_first = i.second.cbegin() + first_offset;
-        auto local_last = i.second.cbegin() + last_offset;
-        i.second.erase(first, last);
-      });
+      auto local_first = i.second.cbegin() + first_offset;
+      auto local_last = i.second.cbegin() + last_offset;
+      i.second.erase(first, last);
+    });
   }
   iterator erase(const_iterator pos) {
     const auto offset = pos - cbegin();
     boost::fusion::for_each(data_, [&](auto&& i) {
-        auto local_pos = i.second.cbegin() + offset;
-        i.second.erase(local_pos);
-      });
+      auto local_pos = i.second.cbegin() + offset;
+      i.second.erase(local_pos);
+    });
   }
   iterator erase(const_iterator first, const_iterator last) {
     const auto first_offset = first - cbegin();
     const auto last_offset = last - cbegin();
     boost::fusion::for_each(data_, [&](auto&& i) {
-        auto local_first = i.second.cbegin() + first_offset;
-        auto local_last = i.second.cbegin() + last_offset;
-        i.second.erase(first, last);
-      });
+      auto local_first = i.second.cbegin() + first_offset;
+      auto local_last = i.second.cbegin() + last_offset;
+      i.second.erase(first, last);
+    });
   }
   void push_back(const T& value) {
     boost::fusion::for_each(zip(MemberMap{}, value), [&](auto&& i) {
@@ -342,8 +344,8 @@ class vector {
   static T to_type(reference ref) {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
-        using key = key_of_t<decltype(i)>;
-        boost::fusion::at_key<key>(tmp) = i.second;
+      using key = key_of_t<decltype(i)>;
+      boost::fusion::at_key<key>(tmp) = i.second;
     });
     return tmp;
   }
@@ -351,8 +353,8 @@ class vector {
   static T to_type(const_reference ref) {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
-        using key = key_of_t<decltype(i)>;
-        boost::fusion::at_key<key>(tmp) = i.second;
+      using key = key_of_t<decltype(i)>;
+      boost::fusion::at_key<key>(tmp) = i.second;
     });
     return tmp;
   }
@@ -360,12 +362,11 @@ class vector {
   static value_type from_type(T& value) {
     value_type tmp;
     boost::fusion::for_each(zip(MemberMap{}, value), [&](auto&& i) {
-        using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-        boost::fusion::at_key<key>(tmp) = boost::fusion::at_c<1>(i);
-      });
+      using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
+      boost::fusion::at_key<key>(tmp) = boost::fusion::at_c<1>(i);
+    });
     return tmp;
   }
-
 };
 
 // relational operators

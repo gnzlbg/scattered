@@ -293,6 +293,7 @@ class vector_iterator_base {
     }
     U i;
   };
+
  public:
   static inline reference_map ref_from_val(value_type& v) noexcept {
     return boost::fusion::transform(v, val_to_ref<value_type>{v});

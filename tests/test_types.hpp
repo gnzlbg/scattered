@@ -13,12 +13,17 @@ struct TestType {
   double y;
   int i;
   bool b;
-  struct k { struct x {}; struct y {}; struct i {}; struct b {}; };
+  struct k {
+    struct x {};
+    struct y {};
+    struct i {};
+    struct b {};
+  };
 };
 
 // This adapts the struct as an associative fusion sequence
 BOOST_FUSION_ADAPT_ASSOC_STRUCT(
-    TestType, (float, x, TestType::k::x)(double, y, TestType::k::y)
-              (int  , i, TestType::k::i)(bool  , b, TestType::k::b))
+    TestType, (float, x, TestType::k::x)(double, y, TestType::k::y)(
+                  int, i, TestType::k::i)(bool, b, TestType::k::b))
 
 #endif  // SCATTERED_TESTS_TEST_TYPES_HPP

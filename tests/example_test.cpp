@@ -5,14 +5,21 @@
 
 /// A is a struct and k contains tags to be used as keys:
 struct A {
-  float x; double y; int i; bool b;
-  struct k { struct x {}; struct y {}; struct i {}; struct b {}; };
+  float x;
+  double y;
+  int i;
+  bool b;
+  struct k {
+    struct x {};
+    struct y {};
+    struct i {};
+    struct b {};
+  };
 };
 
 // This adapts the class as an associative fusion sequence
-BOOST_FUSION_ADAPT_ASSOC_STRUCT(
-    A, (float, x, A::k::x)(double, y, A::k::y)
-       (int  , i, A::k::i)(bool  , b, A::k::b))
+BOOST_FUSION_ADAPT_ASSOC_STRUCT(A, (float, x, A::k::x)(double, y, A::k::y)(
+                                       int, i, A::k::i)(bool, b, A::k::b))
 
 int main() {
   using scattered::get;
@@ -31,15 +38,17 @@ int main() {
   }
 
   /// All Boost and STL algorithms work out of the box
-  boost::stable_sort(vec, [](auto i, auto j) {
-    return get<k::x>(i) > get<k::x>(j);
-  });
+  boost::stable_sort(
+      vec, [](auto i, auto j) { return get<k::x>(i) > get<k::x>(j); });
 
   /// reference/value_types with the original struct
   boost::transform(vec, std::begin(vec), [](auto i) {
-      A tmp = scattered::vector<A>::to_type(i);
-      tmp.x *= tmp.x; tmp.y *= tmp.y; tmp.i *= tmp.i; tmp.b *= tmp.b;
-      return scattered::vector<A>::from_type(tmp);
+    A tmp = scattered::vector<A>::to_type(i);
+    tmp.x *= tmp.x;
+    tmp.y *= tmp.y;
+    tmp.i *= tmp.i;
+    tmp.b *= tmp.b;
+    return scattered::vector<A>::from_type(tmp);
   });
 
   A tmp = {4.0, 3.0, 2, false};
