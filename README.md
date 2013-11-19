@@ -1,14 +1,14 @@
 #### Introduction
 
-In C++, object data members are layed out contiguously in memory. Scattered
-containers store each object's data member sequentially in memory. This
+In C++, object data members are laid out contiguously in memory. Scattered
+containers store each object's data members sequentially in memory. This
 significantly improves the cache performance of algorithms that iterate
-sequentially over a container but access only a small subset of each object
-data members in each pass.
+sequentially over a container but access only a small subset of its members in
+each pass.
 
 Scattered containers is a header only C++1y library that depends on Boost.MPL
 and Boost.Fusion. There is no need to build the library in order to use it in
-your project. The library works successfully with ToT clang and libc++ as well
+your project. The library works successfully with trunk clang/libc++ as well
 as with Boost 1.54. It is provided under the [Boost Software
 License](http://www.boost.org/LICENSE_1_0.txt).
 
@@ -51,7 +51,7 @@ int main() {
     ++count;
   }
 
-  /// All Boost and STL algorithms work out of the box
+  /// Boost and STL algorithms work out of the box
   boost::stable_sort(vec, [](auto i, auto j) {
     return get<k::x>(i) > get<k::x>(j);
   });
@@ -73,7 +73,7 @@ int main() {
  mode
  - `make` compiles the test, `ctest` launches all tests
  - `make docs` builds the documentation
- - `make check-format` / `make update-format` check/update the file formating
+ - `make check-format` / `make update-format` check/update the file formatting
     with clang-format.
 
 #### Tutorial (WIP)
@@ -91,12 +91,12 @@ outside the class, e.g. inside a `class_name_keys` namespace.
 #### Benchmarks (WIP)
 
 The aim of the library is to maximize memory bandwidth usage by using cache
-lines efficiently. Memory bandwitdth usage is one of the most important aspects
+lines efficiently. Memory bandwidth usage is one of the most important aspects
 to consider when discussing performance of modern CPUs.
 
 #### Todo:
 
-For the first milestone `scattered::vector` will be provided. Futre milestones
+For the first milestone `scattered::vector` will be provided. Future milestones
 will provide `scattered::flat_set` and `scattered::unordered_map`. See the
 [roadmaps](https://github.com/gnzlbg/scattered/issues) in the issue list.
 
