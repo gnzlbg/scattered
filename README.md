@@ -6,13 +6,15 @@ significantly improves the cache performance of algorithms that iterate
 sequentially over a container but access only a small subset of each object
 data members in each pass.
 
-Scattered containers is a header only library that depends on Boost.MPL and
-Boost.Fusion. That is, there is no need to build the library in order to use it
-in your project.
+Scattered containers is a header only C++1y library that depends on Boost.MPL
+and Boost.Fusion. There is no need to build the library in order to use it in
+your project. The library works successfully with ToT clang and libc++ as well
+as with Boost 1.54. It is provided under the [Boost Software
+License](http://www.boost.org/LICENSE_1_0.txt).
 
 The following containers are provided:
 
-- scattered::vector<T> (a.k.a. a Struct of Arrays or SOA)
+- `scattered::vector<T>`
 
 #### Example: scattered::vector<T>
 
@@ -54,7 +56,7 @@ int main() {
     return get<k::x>(i) > get<k::x>(j);
   });
 
-  /// from_type/to_t convert from/to the original type:
+  /// from_type/to_type convert from/to the original type:
   boost::transform(vec, std::begin(vec), [](auto i) {
       A tmp = scattered::vector<A>::to_type(i);
       tmp.x *= tmp.x; tmp.y *= tmp.y; tmp.i *= tmp.i; tmp.b *= tmp.b;
@@ -62,11 +64,19 @@ int main() {
   });
 
   A tmp = {4.0, 3.0, 2, false};
-  vec.push_back(tmp);  ///< Or just: vec.push_back(A{{4.0, 3.0, 2.0, false}});
+  vec.push_back(tmp);  ///< Or just: vec.push_back(A{4.0, 3.0, 2, false});
 }
 ```
 
-#### Tutorial
+#### Getting started
+ - `./configure.sh` is used to provide libc++'s path and select the compilation
+ mode
+ - `make` compiles the test, `ctest` launches all tests
+ - `make docs` builds the documentation
+ - `make check-format` / `make update-format` check/update the file formating
+    with clang-format.
+
+#### Tutorial (WIP)
 
 Scattered works on associative Boost.Fusion sequences. You can use
 [BOOST_FUSION_ADAPT_ASSOC_X](http://www.boost.org/doc/libs/1_55_0/libs/fusion/doc/html/fusion/adapted.html)
@@ -78,13 +88,7 @@ It is good practice to define the keys within the class itself. However,
 sometimes one cannot modify the class. In this case, the keys can be defined
 outside the class, e.g. inside a `class_name_keys` namespace.
 
-#### Tests
-
-The tests are located in the `/tests` subdirectory. They can be launched using
-`make test`. The library has been successfully tested with clang 3.4 and Boost
-1.54.
-
-#### Benchmarks
+#### Benchmarks (WIP)
 
 The aim of the library is to maximize memory bandwidth usage by using cache
 lines efficiently. Memory bandwitdth usage is one of the most important aspects
@@ -92,15 +96,17 @@ to consider when discussing performance of modern CPUs.
 
 #### Todo:
 
-Right now the priority is to finish `scattered::vector` before starting to
-implement `scattered::flat_set` and `scattered::unordered_map`.
+For the first milestone `scattered::vector` will be provided. Futre milestones
+will provide `scattered::flat_set` and `scattered::unordered_map`. See the
+[roadmaps](https://github.com/gnzlbg/scattered/issues) in the issue list.
 
 #### Acknowledgments
 
 The Scattered library resulted from my efforts to improve the cache performance
 of the numerical codes in use at the Institute of Aerodynamics, Aachen. This
 probably would never have happened if Georg Geiser wouldn't have introduced me
-to "What every computer scientist needs to know about memory". Furthermore, I
-want to thank the guest of the LoungeC++ at stackoverflow.com for their fruitful
-discussions. In particular, to Evgeny Panasyuk who motivated me to write this
-library.
+to [What Every Programmer Should Know About
+Memory](http://people.freebsd.org/~lstewart/articles/cpumemory.pdf). Furthermore,
+I want to thank the guest of the LoungeC++ at stackoverflow.com for their
+fruitful discussions. In particular, to Evgeny Panasyuk who motivated me to
+write this library.
