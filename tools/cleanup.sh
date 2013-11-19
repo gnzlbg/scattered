@@ -15,5 +15,6 @@ done
 echo "  removing ext/catch/catch-prefix..."
 rm -rf ext/catch/catch-prefix
 rm -rf Testing
+rm -rf docs
 
 echo "... clean-up done!"

@@ -22,7 +22,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   message("linker flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
   # link using clang or the sanitizers _might_ fail to link:
-  set(CMAKE_CXX_LINK_EXECUTABLE=${CMAKE_CXX_COMPILER})
+  set(CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_COMPILER})
 
   # compiler flags:
   set(CMAKE_CXX_FLAGS_LIST
