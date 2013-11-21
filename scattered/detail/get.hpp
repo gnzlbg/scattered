@@ -10,6 +10,7 @@
 
 #include <boost/fusion/sequence/intrinsic/at_key.hpp>
 #include "returns.hpp"
+#include "unqualified.hpp"
 
 namespace scattered {
 
@@ -24,7 +25,7 @@ struct is_iterator_test {
 template <class T>
 struct is_iterator
     : decltype(is_iterator_test::test
-               <std::remove_reference_t<std::remove_cv_t<T>>>(0)) {};
+               <detail::unqualified_t<T>>(0)) {};
 
 struct is_adapted_iterator_test {
   template <class U>
@@ -35,7 +36,7 @@ struct is_adapted_iterator_test {
 template <class T>
 struct is_adapted_iterator
     : decltype(is_adapted_iterator_test::test
-               <std::remove_reference_t<std::remove_cv_t<T>>>(0)) {};
+               <detail::unqualified_t<T>>(0)) {};
 
 }  // namespace get_detail
 
@@ -44,22 +45,22 @@ template <class K, class C,
           std::enable_if_t<!get_detail::is_iterator<C>::value
                            && !get_detail::is_adapted_iterator<C>::value,
                            int> = 0>
-decltype(auto) get(C&& c) noexcept {
-  return boost::fusion::at_key<K>(std::forward<C>(c));
-}
+auto get(C&& c) RETURNS(boost::fusion::at_key<K>(std::forward<C>(c)));
 
 /// \brief Get element at key for an iterator
 template <class K, class C,
           std::enable_if_t<get_detail::is_iterator<C>::value, int> = 0>
-decltype(auto) get(C&& c) noexcept {
-  return get<K>(c.it());
+auto get(C&& c) noexcept {
+  auto tmp = get<K>(std::forward<decltype(c.it())>(c.it()));
+  return tmp;
 }
 
 /// \brief Get element at key for an adapted iterator
 template <class K, class C,
           std::enable_if_t<get_detail::is_adapted_iterator<C>::value, int> = 0>
-decltype(auto) get(C&& c) noexcept {
-  return get<K>(c.base());
+auto get(C&& c) {
+  auto tmp = get<K>(std::forward<decltype(c.base())>(c.base()));
+  return tmp;
 }
 
 }  // namespace scattered

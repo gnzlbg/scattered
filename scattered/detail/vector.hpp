@@ -22,6 +22,7 @@
 #include "as_fusion_map.hpp"
 #include "vector_iterator_base.hpp"
 #include "get.hpp"
+#include "unqualified.hpp"
 
 namespace scattered {
 
@@ -37,7 +38,7 @@ class vector {
   using MemberMap = typename detail::as_fusion_map<T>::type;
   /// P -> P::key_type
   template <class P> struct key_of {
-    using type = typename std::remove_reference_t<P>::first_type;
+    using type = typename detail::unqualified_t<P>::first_type;
   };
   template <class P> using key_of_t = typename key_of<P>::type;
   /// P -> P::value_type
@@ -62,17 +63,15 @@ class vector {
 
   data_type data_;
 
-  struct const_tag {};
-
  public:
   /// Container traits
   ///{@
   template <class U> using container_type = Container<U>;
   using size_type = std::size_t;
   using iterator = typename detail::vector_iterator_base
-      <const_tag, values, keys, Container>;
+      <false, values, keys, Container>;
   using const_iterator = typename detail::vector_iterator_base
-      <const const_tag, values, keys, Container>;
+      <true, values, keys, Container>;
   using value_type = typename iterator::value_type;
   using reference = typename iterator::reference;
   using const_reference = typename const_iterator::reference;
@@ -109,7 +108,8 @@ class vector {
     template <class U> auto operator()(U& i) const {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
-      return boost::fusion::make_pair<key_type>((i.second).begin());
+      return boost::fusion::make_pair
+          <key_type>(i.second.cbegin());
     }
   };
 
@@ -126,7 +126,8 @@ class vector {
     template <class U> auto operator()(U& i) const {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
-      return boost::fusion::make_pair<key_type>((i.second).end());
+      return boost::fusion::make_pair
+          <key_type>(i.second.cend());
     }
   };
 
@@ -137,16 +138,14 @@ class vector {
   inline iterator end() {
     return iterator::from_map(boost::fusion::transform(data_, make_end_it()));
   }
-  inline const_iterator begin() const {
-    return const_iterator::from_map(
-        boost::fusion::transform(data_, make_cbegin_it()));
+  inline const_iterator cbegin() const {
+    return const_iterator::from_map(boost::fusion::transform(data_, make_cbegin_it()));
   }
-  inline const_iterator end() const {
-    return const_iterator::from_map(
-        boost::fusion::transform(data_, make_cend_it()));
+  inline const_iterator cend() const {
+    return const_iterator::from_map(boost::fusion::transform(data_, make_cend_it()));
   }
-  inline const_iterator cbegin() const { return begin(); }
-  inline const_iterator cend() const { return end(); }
+  inline const_iterator begin() const { return cbegin(); }
+  inline const_iterator end() const { return cend(); }
 
   reverse_iterator rbegin() { return end(); }
   reverse_iterator rend() { return begin(); }
@@ -156,15 +155,6 @@ class vector {
 
   /// Element Access
   ///@{
-  reference at(size_type pos) {
-    if (!(pos < size())) {
-      throw std::out_of_range("scattered::vector::at(" + std::to_string(pos)
-                              + ") is out of bounds [0,"
-                              + std::to_string(size()) + ")");
-    } else {
-      return (*this)[pos];
-    }
-  }
   constexpr const_reference at(size_type pos) const {
     if (!(pos < size())) {
       throw std::out_of_range("scattered::vector::at(" + std::to_string(pos)
@@ -237,51 +227,18 @@ class vector {
   // iterator insert( const_iterator pos, size_type count, const T& value );
   template <class InputIt>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
-    std::cerr << "range insert: " << last - first << "\n";
-    boost::fusion::for_each(zip(first.it(), last.it()), [](auto&& i) {
-      std::cerr << "rc: l - f: " << &*boost::fusion::at_c<1>(i).second << " - "
-                << &*boost::fusion::at_c<0>(i).second << " = "
-                << boost::fusion::at_c<1>(i).second - boost::fusion::at_c
-                                                      <0>(i).second << "\n";
-    });
     const auto offset = pos - cbegin();
     if (first != last) {
       boost::fusion::for_each(data_, [&](auto&& i) {
         using key = key_of_t
-            <std::remove_cv_t<std::remove_reference_t<decltype(i)>>>;
-        using local_const_iterator = typename std::remove_cv_t
-            <std::remove_reference_t<decltype(i.second)>>::const_iterator;
+            <detail::unqualified_t<decltype(i)>>;
         auto local_pos = i.second.cbegin() + offset;
-        // auto fIt = boost::fusion::at_key<key>(first.it());
-        // auto lIt = boost::fusion::at_key<key>(last.it());
-        // auto fIt = get<key>(first.it());
-        // auto lIt = get<key>(last.it());
-        auto fIt = get<key>(first);
-        auto lIt = get<key>(last);
-        std::cerr << "l - f: " << &*lIt << " - " << &*fIt << " = " << lIt - fIt
-                  << "\n";
-        i.second.insert(local_pos, fIt, lIt);
+        i.second.insert(local_pos, get<key>(first), get<key>(last));
       });
     }
     return begin() + offset;
   };
 
-  iterator erase(iterator pos) {
-    const auto offset = pos - begin();
-    boost::fusion::for_each(data_, [&](auto&& i) {
-      auto local_pos = i.second.cbegin() + offset;
-      i.second.erase(local_pos);
-    });
-  }
-  iterator erase(iterator first, iterator last) {
-    const auto first_offset = first - begin();
-    const auto last_offset = last - begin();
-    boost::fusion::for_each(data_, [&](auto&& i) {
-      auto local_first = i.second.cbegin() + first_offset;
-      auto local_last = i.second.cbegin() + last_offset;
-      i.second.erase(first, last);
-    });
-  }
   iterator erase(const_iterator pos) {
     const auto offset = pos - cbegin();
     boost::fusion::for_each(data_, [&](auto&& i) {

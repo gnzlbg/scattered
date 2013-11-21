@@ -22,6 +22,7 @@
 #include "returns.hpp"
 #include "map_mutation.hpp"
 #include "container_traits.hpp"
+#include "unqualified.hpp"
 
 namespace scattered {
 
@@ -29,22 +30,24 @@ namespace detail {
 
 /// \brief RandomAccessIterator for scattered::vector container
 /// If const_tag is const -> const_iterator, otherwise -> iterator
-template <class const_tag, class column_types, class column_tags,
+template <bool is_const_, class column_types, class column_tags,
           template <class> class container_type>
 class vector_iterator_base {
  public:
   /// \name Utility aliases
   ///@{
+  static const constexpr bool is_const = is_const_;
   using types = column_types;
   using tags = column_tags;
   using container = container_traits<types, tags, container_type>;
-  using This = vector_iterator_base<const_tag, types, tags, container_type>;
+  using This = vector_iterator_base<is_const, types, tags, container_type>;
   using const_This = vector_iterator_base
-      <const const_tag, types, tags, container_type>;
+      <true, types, tags, container_type>;
+  friend const_This;
   using non_const_This = vector_iterator_base
-      <std::remove_cv_t<const_tag>, types, tags, container_type>;
+      <false, types, tags, container_type>;
   friend non_const_This;
-  static const constexpr bool is_const = std::is_const<const_tag>::value;
+
   ///@}
 
   /// \name Map types
@@ -120,19 +123,34 @@ class vector_iterator_base {
 
   /// DefaultConstructible/CopyConstructible/MoveConstructible
   /// @{
+ private:
+  template<class T>
+  static constexpr bool is_This_is_const_and_T_not() {
+    return std::is_same<detail::unqualified_t<T>,
+                        non_const_This>::value
+    && std::is_same<This, const_This>::value;
+  }
+ public:
   vector_iterator_base() = default;
   vector_iterator_base(This const& it) noexcept : it_(it.it_) {}
-  vector_iterator_base(This&& it) noexcept : it_(std::move(it.it_)) {}
-  This& operator=(iterator_map const& it) noexcept {
-    it_ = it;
-    return *this;
-  }
+  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  vector_iterator_base(T const& it) noexcept : it_(it.it_) {}
   This& operator=(This const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
-  This& operator=(iterator_map&& it) noexcept {
-    it_ = std::move(it);
+  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  This& operator=(T const& it) noexcept {
+    it_ = it.it_;
+    return *this;
+  }
+
+  vector_iterator_base(This&& it) noexcept : it_(std::move(it.it_)) {}
+  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  vector_iterator_base(T&& it) noexcept : it_(std::move(it.it_)) {}
+  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  This& operator=(T&& it) noexcept {
+    it_ = std::move(it.it_);
     return *this;
   }
   This& operator=(This&& it) noexcept {
@@ -222,34 +240,6 @@ class vector_iterator_base {
   }
   ///@}
 
-  /// \name Conversion operator
-  ///@{
-
-  template
-      <typename T,
-       typename = typename std::enable_if
-       <!is_const && std::is_same
-        <std::remove_cv_t<std::remove_reference_t<T>>, const_This>::value
-        && !std::is_same
-           <std::remove_cv_t<std::remove_reference_t<T>>, iterator_map>::value
-        && !std::is_same<std::remove_cv_t<std::remove_reference_t<T>>,
-                         const_iterator_map>::value>::type>
-  operator T() {
-    static_assert(!is_const, "a const_iterator doesn't need conversion");
-    static_assert(
-        std::is_same
-        <std::remove_reference_t<decltype(*this)>, non_const_This>::value,
-        "this is a const_iterator");
-    static_assert(std::is_same<T, const_This>::value,
-                  "iterator can convert only to const_iterator");
-    static_assert(std::is_same
-                  <std::remove_reference_t<decltype(cit_from_it(*this))>,
-                   const_This>::value,
-                  "conversion doesn't return a const_iterator");
-    return const_This{cit_from_it(*this)};
-  }
-  ///@}
-
  private:
   iterator_map it_;  ///< Tuple of iterators over column types
 
@@ -259,19 +249,16 @@ class vector_iterator_base {
   /// \brief Equality
   struct Eq {
     template <class T>
-    using remove_q = std::remove_cv_t<std::remove_reference_t<T>>;
-
-    template <class T>
     inline auto operator()(T&& i) const noexcept
         -> decltype(
               std::enable_if_t
               <!std::is_floating_point
-               <remove_q<decltype(boost::fusion::at_c<0>(i).second)>>::value,
+               <detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>>::value,
                bool>()) {
-      using type0 = remove_q<decltype(boost::fusion::at_c<0>(i).second)>;
-      using type1 = remove_q<decltype(boost::fusion::at_c<1>(i).second)>;
+      using type0 = detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = detail::unqualified_t<decltype(boost::fusion::at_c<1>(i).second)>;
       static_assert(std::is_same<type0, type1>::value,
-                    "Expecting the same type");
+                    "Expecting the same type - non_fp_overload");
       return boost::fusion::at_c<0>(i).second == boost::fusion::at_c
                                                  <1>(i).second;
     }
@@ -280,12 +267,12 @@ class vector_iterator_base {
         -> decltype(
               std::enable_if_t
               <std::is_floating_point
-               <remove_q<decltype(boost::fusion::at_c<0>(i).second)>>::value,
+               <detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>>::value,
                bool>()) {
-      using type0 = remove_q<decltype(boost::fusion::at_c<0>(i).second)>;
-      using type1 = remove_q<decltype(boost::fusion::at_c<1>(i).second)>;
+      using type0 = detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = detail::unqualified_t<decltype(boost::fusion::at_c<1>(i).second)>;
       static_assert(std::is_same<type0, type1>::value,
-                    "Expecting the same type");
+                    "Expecting the same type - fp_overload");
       return std::abs(boost::fusion::at_c<0>(i).second
                       - boost::fusion::at_c<1>(i).second) < std::numeric_limits
              <type0>::epsilon();
@@ -326,7 +313,7 @@ class vector_iterator_base {
   struct Increment {
     Increment(const difference_type value) noexcept : value_(value) {}
     template <class T>
-    inline std::remove_reference_t<T> operator()(T&& i) const noexcept {
+    inline detail::unqualified_t<T> operator()(T&& i) const noexcept {
       return {i.second + value_};
     }
     const difference_type value_;
@@ -336,7 +323,7 @@ class vector_iterator_base {
   struct Decrement {
     Decrement(const difference_type value) : value_(value) {}
     template <class T>
-    inline std::remove_reference_t<T> operator()(T&& i) const noexcept {
+    inline detail::unqualified_t<T> operator()(T&& i) const noexcept {
       return {i.second - value_};
     }
     const difference_type value_;
@@ -369,10 +356,10 @@ class vector_iterator_base {
     it_to_ref(U v_) : i(v_) {}
     template <class T> inline auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
-      using value = std::remove_reference_t
+      using value = detail::unqualified_t
           <decltype(*typename T::second_type())>;
       return boost::fusion::make_pair<key, std::add_lvalue_reference_t<value>>(
-          *boost::fusion::at_key<key>(i));
+          const_cast<value&>(*boost::fusion::at_key<key>(i)));
     }
     U i;
   };
@@ -381,7 +368,7 @@ class vector_iterator_base {
     it_to_cit(U v_) : i(v_) {}
     template <class T> inline auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
-      using value = std::remove_reference_t
+      using value = detail::unqualified_t
           <decltype(typename T::second_type())>;
       return boost::fusion::make_pair
           <key, typename container::template const_iterator

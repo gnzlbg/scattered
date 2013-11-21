@@ -7,8 +7,9 @@
 #include <boost/tuple/tuple.hpp>
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
-#include "scattered/vector.hpp"
 #include "test_types.hpp"
+#include "scattered/vector.hpp"
+
 
 #define DEBUG_OUTPUT
 
@@ -50,7 +51,7 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
   using scattered::get;
 
   /// We can make a vector from our Struct type
-  std::size_t ref_size = 10;
+  long ref_size = 10;
   scattered::vector<TestType> vec(ref_size);
   std::vector<TestType> ref(ref_size);
 
@@ -76,7 +77,7 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     }
   };
 
-  SECTION("types and get<key>") {
+  SECTION("basic types and get<key>") {
     auto it = vec.begin();
     auto cit = vec.cbegin();
     scattered::vector<TestType>::value_type val = *it;
@@ -108,6 +109,16 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
         <decltype(creft), scattered::vector<TestType>::const_reference>::value,
         "wrong const_reference type");
 
+    static_assert(std::is_same
+                  <scattered::detail::unqualified_t<decltype(get<k::x>(vec.begin()))>,
+                  scattered::detail::unqualified_t<decltype(get<k::x>(vec.begin().it()))>>::value,
+                  "get return value mismatch");
+
+    static_assert(std::is_same
+                  <scattered::detail::unqualified_t<decltype(get<k::x>(vec.cbegin()))>,
+                  scattered::detail::unqualified_t<decltype(get<k::x>(vec.cbegin().it()))>>::value,
+                  "get return value mismatch");
+
     decltype(auto) it_x = get<k::x>(it);
     decltype(auto) cit_x = get<k::x>(cit);
     decltype(auto) val_x = get<k::x>(val);
@@ -117,26 +128,25 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
 
     static_assert(
         std::is_same
-        <decltype(it_x), typename container_t<float>::iterator const&>::value,
-        "wrong iterator_x type");
+        <decltype(it_x), typename container_t<float>::iterator>::value,
+        "decltype(auto): wrong iterator_x type");
     static_assert(std::is_same<decltype(cit_x), typename container_t
-                               <float>::const_iterator const&>::value,
-                  "wrong const_iterator_x type");
+                               <float>::const_iterator>::value,
+                  "decltype(auto): wrong const_iterator_x type");
     static_assert(
         std::is_same
         <decltype(val_x), typename container_t<float>::value_type&>::value,
-        "wrong value_type_x");
-    static_assert(std::is_same<decltype(cval_x), float const&>::value,
-                  "wrong const value_type_x");
-    /// \todo these static_asserts fail
-    // static_assert(
-    //     std::is_same
-    //     <decltype(reft), typename container_t<float>::reference>::value,
-    //     "wrong reference_x type");
-    // static_assert(
-    //     std::is_same
-    //     <decltype(creft), typename container_t<float>::const_reference>::value,
-    //     "wrong const_reference_x type");
+        "decltype(auto): wrong value_type_x");
+    static_assert(std::is_same<decltype(cval_x), typename container_t
+                               <float>::value_type const&>::value,
+                  "decltype(auto): wrong const value_type_x");
+    static_assert(
+        std::is_same
+        <decltype(reft_x), typename container_t<float>::reference>::value,
+        "decltype(auto): wrong reference_x type");
+    static_assert(std::is_same<decltype(creft_x), typename container_t
+                               <float>::const_reference>::value,
+                  "decltype(auto): wrong const_reference_x type");
 
     auto rit_x = get<k::x>(it);
     auto rcit_x = get<k::x>(cit);
@@ -145,10 +155,74 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     auto rreft_x = get<k::x>(reft);
     auto rcreft_x = get<k::x>(creft);
 
-    /// \todo static_asserts missing
+    static_assert(
+        std::is_same
+        <decltype(rit_x), typename container_t<float>::iterator>::value,
+        "auto: wrong iterator_x type");
+    static_assert(
+        std::is_same
+        <decltype(rcit_x), typename container_t<float>::const_iterator>::value,
+        "auto: wrong const_iterator_x type");
+    static_assert(
+        std::is_same
+        <decltype(rval_x), typename container_t<float>::value_type>::value,
+        "auto: wrong value_type_x");
+    static_assert(
+        std::is_same
+        <decltype(rcval_x), typename container_t<float>::value_type>::value,
+        "auto: wrong const value_type_x");
+    static_assert(
+        std::is_same
+        <decltype(rreft_x), typename container_t<float>::value_type>::value,
+        "auto: wrong reference_x type");
+    static_assert(
+        std::is_same
+        <decltype(rcreft_x), typename container_t<float>::value_type>::value,
+        "auto: wrong const_reference_x type");
+
+    auto b_x = get<k::x>(vec.begin());
+    auto e_x = get<k::x>(vec.end());
+    auto cb_x = get<k::x>(vec.cbegin());
+    auto ce_x = get<k::x>(vec.cend());
+
+    decltype(auto) rb_x = get<k::x>(vec.begin());
+    decltype(auto) re_x = get<k::x>(vec.end());
+    decltype(auto) rcb_x = get<k::x>(vec.cbegin());
+    decltype(auto) rce_x = get<k::x>(vec.cend());
+
+    REQUIRE( (e_x - b_x) == ref_size );
+    REQUIRE( (ce_x - cb_x) == ref_size );
+    REQUIRE( (re_x - rb_x) == ref_size );
+    REQUIRE( (rce_x - rcb_x) == ref_size );
+
+    auto b = vec.begin();
+    auto e = vec.end();
+    auto cb = vec.cbegin();
+    auto ce = vec.cend();
+
+    decltype(auto) rb = vec.begin();
+    decltype(auto) re = vec.end();
+    decltype(auto) rcb = vec.cbegin();
+    decltype(auto) rce = vec.cend();
+
+    REQUIRE( (e - b) == ref_size );
+    REQUIRE( (ce - cb) == ref_size );
+    REQUIRE( (re - rb) == ref_size );
+    REQUIRE( (rce - rcb) == ref_size );
+
+    REQUIRE( (get<k::x>(e) - get<k::x>(b)) == ref_size );
+    REQUIRE( (get<k::x>(ce) - get<k::x>(cb)) == ref_size );
+    REQUIRE( (get<k::x>(re) - get<k::x>(rb)) == ref_size );
+    REQUIRE( (get<k::x>(rce) - get<k::x>(rcb)) == ref_size );
+
+
+    REQUIRE((get<k::x>(vec.end().it())  - get<k::x>(vec.begin().it()))  == ref_size);
+    REQUIRE((get<k::y>(vec.end())  - get<k::y>(vec.begin()))  == ref_size);
+    REQUIRE((get<k::x>(vec.cend()) - get<k::x>(vec.cbegin())) == ref_size);
+    REQUIRE((get<k::y>(vec.cend()) - get<k::y>(vec.cbegin())) == ref_size);
   }
   SECTION("Iterators: Arithmetic operators") {
-    using difference_type = std::remove_reference_t
+    using difference_type = scattered::detail::unqualified_t
         <decltype(ref.begin())>::difference_type;
     difference_type value = 5;
 
@@ -161,7 +235,8 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     REQUIRE((e_vec.end() - e_vec.begin()) == (e_ref.end() - e_ref.begin()));
     REQUIRE((e_vec.end() - e_vec.begin()) == difference_type{0});
   }
-  SECTION("Iterators: conversion operator") {
+  SECTION("Iterators: conversions between const/non_const") {
+    /// \todo
     scattered::vector<TestType> e_vec;
     auto mb = e_vec.begin();
     static_assert(!mb.is_const, "error: its non const!");
@@ -169,12 +244,74 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     scattered::vector<TestType>::const_iterator cmb = mb;
     REQUIRE(cmb == ib);
   }
+  SECTION("Iterators: general tests") {
+
+  }
   SECTION("Relational operators") {
+    /// \todo
     scattered::vector<TestType> new_vec;
     std::vector<TestType> new_ref;
 
     are_equal(new_vec, new_ref);
     print_container("empty vec:", new_vec);
+  }
+  SECTION("Member function: at") {
+    /// \todo
+  }
+  SECTION("Member function: operator[]") {
+    /// \todo
+  }
+  SECTION("Member function: front/back") {
+    /// \todo
+  }
+  SECTION("Member function: capacity/empty/reserve/shrink_to_fit") {
+    /// \todo
+  }
+  SECTION("Member function: clear") {
+    /// \todo
+  }
+  SECTION("Member function: push_back/pop_back") {
+    /// \todo pop_back
+    scattered::vector<TestType> new_vec;
+
+    TestType tmp_ref;
+    tmp_ref.x = 4.0;
+    tmp_ref.y = 3.0;
+    tmp_ref.i = 2.0;
+    tmp_ref.b = false;
+
+    new_vec.push_back(tmp_ref);
+    auto tmp = scattered::vector<TestType>::to_type(new_vec[0]);
+
+    REQUIRE( tmp == tmp_ref );
+
+    TestType tmp_ref2 = {4.0, 3.0, 2, false};
+
+    new_vec.push_back(TestType{4.0, 3.0, 2, false});
+    auto tmp2 = scattered::vector<TestType>::to_type(new_vec[1]);
+
+    REQUIRE( tmp2 == tmp_ref2 );
+  }
+  SECTION("Member function: resize") {
+    /// \todo
+  }
+  SECTION("Member function: swap") {
+    /// \todo
+  }
+  SECTION("Member function: data") {
+    /// \todo data test
+    // /// Example of get_container
+    // std::cout << "elements of k::y container: (";
+    // for (auto i : vec.data<k::y>()) {
+    //   std::cout << i << ", ";
+    // }
+    // std::cout << ")\n";
+  }
+  SECTION("Member function: erase position") {
+    /// \todo
+  }
+  SECTION("Member function: erase range") {
+    /// \todo
   }
   SECTION("Member function: insert value") {
     std::vector<TestType> new_ref;
@@ -194,13 +331,13 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
   SECTION("Member function: insert range") {
     scattered::vector<TestType> new_vec;
     new_vec.insert(new_vec.cbegin(), vec.cbegin(), vec.cend());
-    REQUIRE(new_vec.size() == ref_size);
+    REQUIRE( (long)new_vec.size() == ref_size);
     are_equal(new_vec, ref);
     are_equal(vec, ref);
 
     scattered::vector<TestType> new_vec2;
     new_vec2.insert(new_vec2.begin(), vec.begin(), vec.end());
-    REQUIRE(new_vec2.size() == ref_size);
+    REQUIRE((long)new_vec2.size() == ref_size);
     are_equal(new_vec2, ref);
 
     scattered::vector<TestType> new_vec3;
@@ -280,32 +417,4 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
 
     print_container("After push_back | reversed", vec);
   }
-  /// We can push back both: the fusion map representing the struct
-  // auto val = typename scattered::vector<TestType>::value_type{
-  //     boost::fusion::make_pair<k::x>(static_cast<float>(1.0)),
-  //     boost::fusion::make_pair<k::y>(static_cast<double>(2.0)),
-  //     boost::fusion::make_pair<k::i>(static_cast<int>(3)),
-  //     boost::fusion::make_pair<k::b>(true), };
-
-  // vec.push_back(val);
-  // std::cout << "After push_back of (1., 2., 3. true):\n";
-  // print_container(vec);
-
-  // /// And also the struct itself:
-  // TestType tmp;
-  // tmp.x = 4.0;
-  // tmp.y = 3.0;
-  // tmp.i = 2.0;
-  // tmp.b = false;
-
-  // vec.push_back(tmp);
-  // std::cout << "After push_back of Struct (4., 3., 2. false):\n";
-  // print_container(vec);
-
-  // /// Example of get_container
-  // std::cout << "elements of k::y container: (";
-  // for (auto i : vec.data<k::y>()) {
-  //   std::cout << i << ", ";
-  // }
-  // std::cout << ")\n";
 }

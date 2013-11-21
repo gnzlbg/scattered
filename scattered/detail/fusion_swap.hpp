@@ -9,6 +9,7 @@
 #define SCATTERED_DETAIL_FUSION_SWAP_HPP
 
 #include <type_traits>
+#include "unqualified.hpp"
 
 namespace boost {
 
@@ -17,7 +18,7 @@ namespace fusion {
 /// \brief Swap function for fusion types
 template <class T> inline void swap(T&& lhs, T&& rhs) noexcept {
   using std::swap;
-  std::remove_reference_t<T> tmp = lhs;
+  scattered::detail::unqualified_t<T> tmp = lhs;
   lhs = std::move(rhs);
   rhs = std::move(tmp);
 }
