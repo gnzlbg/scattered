@@ -41,8 +41,7 @@ class vector_iterator_base {
   using tags = column_tags;
   using container = container_traits<types, tags, container_type>;
   using This = vector_iterator_base<is_const, types, tags, container_type>;
-  using const_This = vector_iterator_base
-      <true, types, tags, container_type>;
+  using const_This = vector_iterator_base<true, types, tags, container_type>;
   friend const_This;
   using non_const_This = vector_iterator_base
       <false, types, tags, container_type>;
@@ -124,31 +123,30 @@ class vector_iterator_base {
   /// DefaultConstructible/CopyConstructible/MoveConstructible
   /// @{
  private:
-  template<class T>
-  static constexpr bool is_This_is_const_and_T_not() {
-    return std::is_same<detail::unqualified_t<T>,
-                        non_const_This>::value
-    && std::is_same<This, const_This>::value;
+  template <class T> static constexpr bool is_This_is_const_and_T_not() {
+    return std::is_same<detail::unqualified_t<T>, non_const_This>::value
+           && std::is_same<This, const_This>::value;
   }
+
  public:
   vector_iterator_base() = default;
   vector_iterator_base(This const& it) noexcept : it_(it.it_) {}
-  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
   vector_iterator_base(T const& it) noexcept : it_(it.it_) {}
   This& operator=(This const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
-  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
   This& operator=(T const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
 
   vector_iterator_base(This&& it) noexcept : it_(std::move(it.it_)) {}
-  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
   vector_iterator_base(T&& it) noexcept : it_(std::move(it.it_)) {}
-  template<class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
   This& operator=(T&& it) noexcept {
     it_ = std::move(it.it_);
     return *this;
@@ -249,28 +247,34 @@ class vector_iterator_base {
   /// \brief Equality
   struct Eq {
     template <class T>
-    inline auto operator()(T&& i) const noexcept
-        -> decltype(
-              std::enable_if_t
-              <!std::is_floating_point
-               <detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>>::value,
-               bool>()) {
-      using type0 = detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>;
-      using type1 = detail::unqualified_t<decltype(boost::fusion::at_c<1>(i).second)>;
+    inline auto operator()(T&& i) const
+        noexcept -> decltype(
+                       std::enable_if_t
+                       <!std::is_floating_point
+                        <detail::unqualified_t
+                         <decltype(boost::fusion::at_c<0>(i).second)>>::value,
+                        bool>()) {
+      using type0 = detail::unqualified_t
+          <decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = detail::unqualified_t
+          <decltype(boost::fusion::at_c<1>(i).second)>;
       static_assert(std::is_same<type0, type1>::value,
                     "Expecting the same type - non_fp_overload");
       return boost::fusion::at_c<0>(i).second == boost::fusion::at_c
                                                  <1>(i).second;
     }
     template <class T>
-    inline auto operator()(T&& i) const noexcept
-        -> decltype(
-              std::enable_if_t
-              <std::is_floating_point
-               <detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>>::value,
-               bool>()) {
-      using type0 = detail::unqualified_t<decltype(boost::fusion::at_c<0>(i).second)>;
-      using type1 = detail::unqualified_t<decltype(boost::fusion::at_c<1>(i).second)>;
+    inline auto operator()(T&& i) const
+        noexcept -> decltype(
+                       std::enable_if_t
+                       <std::is_floating_point
+                        <detail::unqualified_t
+                         <decltype(boost::fusion::at_c<0>(i).second)>>::value,
+                        bool>()) {
+      using type0 = detail::unqualified_t
+          <decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = detail::unqualified_t
+          <decltype(boost::fusion::at_c<1>(i).second)>;
       static_assert(std::is_same<type0, type1>::value,
                     "Expecting the same type - fp_overload");
       return std::abs(boost::fusion::at_c<0>(i).second
@@ -356,8 +360,7 @@ class vector_iterator_base {
     it_to_ref(U v_) : i(v_) {}
     template <class T> inline auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
-      using value = detail::unqualified_t
-          <decltype(*typename T::second_type())>;
+      using value = detail::unqualified_t<decltype(*typename T::second_type())>;
       return boost::fusion::make_pair<key, std::add_lvalue_reference_t<value>>(
           const_cast<value&>(*boost::fusion::at_key<key>(i)));
     }
@@ -368,8 +371,7 @@ class vector_iterator_base {
     it_to_cit(U v_) : i(v_) {}
     template <class T> inline auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
-      using value = detail::unqualified_t
-          <decltype(typename T::second_type())>;
+      using value = detail::unqualified_t<decltype(typename T::second_type())>;
       return boost::fusion::make_pair
           <key, typename container::template const_iterator
            <typename value::value_type>::type>(boost::fusion::at_key<key>(i));

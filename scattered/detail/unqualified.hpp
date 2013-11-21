@@ -13,7 +13,7 @@ namespace scattered {
 namespace detail {
 
 /// Removes qualifiers just as auto i = expr; does from the result of expr.
-template<class T>
+template <class T>
 using unqualified_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 }  // namespace detail

@@ -108,8 +108,7 @@ class vector {
     template <class U> auto operator()(U& i) const {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
-      return boost::fusion::make_pair
-          <key_type>(i.second.cbegin());
+      return boost::fusion::make_pair<key_type>(i.second.cbegin());
     }
   };
 
@@ -126,8 +125,7 @@ class vector {
     template <class U> auto operator()(U& i) const {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
-      return boost::fusion::make_pair
-          <key_type>(i.second.cend());
+      return boost::fusion::make_pair<key_type>(i.second.cend());
     }
   };
 
@@ -139,10 +137,12 @@ class vector {
     return iterator::from_map(boost::fusion::transform(data_, make_end_it()));
   }
   inline const_iterator cbegin() const {
-    return const_iterator::from_map(boost::fusion::transform(data_, make_cbegin_it()));
+    return const_iterator::from_map(
+        boost::fusion::transform(data_, make_cbegin_it()));
   }
   inline const_iterator cend() const {
-    return const_iterator::from_map(boost::fusion::transform(data_, make_cend_it()));
+    return const_iterator::from_map(
+        boost::fusion::transform(data_, make_cend_it()));
   }
   inline const_iterator begin() const { return cbegin(); }
   inline const_iterator end() const { return cend(); }
@@ -230,8 +230,7 @@ class vector {
     const auto offset = pos - cbegin();
     if (first != last) {
       boost::fusion::for_each(data_, [&](auto&& i) {
-        using key = key_of_t
-            <detail::unqualified_t<decltype(i)>>;
+        using key = key_of_t<detail::unqualified_t<decltype(i)>>;
         auto local_pos = i.second.cbegin() + offset;
         i.second.insert(local_pos, get<key>(first), get<key>(last));
       });

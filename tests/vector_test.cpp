@@ -10,7 +10,6 @@
 #include "test_types.hpp"
 #include "scattered/vector.hpp"
 
-
 #define DEBUG_OUTPUT
 
 /// Pretty print for debugging
@@ -109,15 +108,19 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
         <decltype(creft), scattered::vector<TestType>::const_reference>::value,
         "wrong const_reference type");
 
-    static_assert(std::is_same
-                  <scattered::detail::unqualified_t<decltype(get<k::x>(vec.begin()))>,
-                  scattered::detail::unqualified_t<decltype(get<k::x>(vec.begin().it()))>>::value,
-                  "get return value mismatch");
+    static_assert(
+        std::is_same
+        <scattered::detail::unqualified_t<decltype(get<k::x>(vec.begin()))>,
+         scattered::detail::unqualified_t
+         <decltype(get<k::x>(vec.begin().it()))>>::value,
+        "get return value mismatch");
 
-    static_assert(std::is_same
-                  <scattered::detail::unqualified_t<decltype(get<k::x>(vec.cbegin()))>,
-                  scattered::detail::unqualified_t<decltype(get<k::x>(vec.cbegin().it()))>>::value,
-                  "get return value mismatch");
+    static_assert(
+        std::is_same
+        <scattered::detail::unqualified_t<decltype(get<k::x>(vec.cbegin()))>,
+         scattered::detail::unqualified_t
+         <decltype(get<k::x>(vec.cbegin().it()))>>::value,
+        "get return value mismatch");
 
     decltype(auto) it_x = get<k::x>(it);
     decltype(auto) cit_x = get<k::x>(cit);
@@ -130,9 +133,10 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
         std::is_same
         <decltype(it_x), typename container_t<float>::iterator>::value,
         "decltype(auto): wrong iterator_x type");
-    static_assert(std::is_same<decltype(cit_x), typename container_t
-                               <float>::const_iterator>::value,
-                  "decltype(auto): wrong const_iterator_x type");
+    static_assert(
+        std::is_same
+        <decltype(cit_x), typename container_t<float>::const_iterator>::value,
+        "decltype(auto): wrong const_iterator_x type");
     static_assert(
         std::is_same
         <decltype(val_x), typename container_t<float>::value_type&>::value,
@@ -190,10 +194,10 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     decltype(auto) rcb_x = get<k::x>(vec.cbegin());
     decltype(auto) rce_x = get<k::x>(vec.cend());
 
-    REQUIRE( (e_x - b_x) == ref_size );
-    REQUIRE( (ce_x - cb_x) == ref_size );
-    REQUIRE( (re_x - rb_x) == ref_size );
-    REQUIRE( (rce_x - rcb_x) == ref_size );
+    REQUIRE((e_x - b_x) == ref_size);
+    REQUIRE((ce_x - cb_x) == ref_size);
+    REQUIRE((re_x - rb_x) == ref_size);
+    REQUIRE((rce_x - rcb_x) == ref_size);
 
     auto b = vec.begin();
     auto e = vec.end();
@@ -205,19 +209,19 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     decltype(auto) rcb = vec.cbegin();
     decltype(auto) rce = vec.cend();
 
-    REQUIRE( (e - b) == ref_size );
-    REQUIRE( (ce - cb) == ref_size );
-    REQUIRE( (re - rb) == ref_size );
-    REQUIRE( (rce - rcb) == ref_size );
+    REQUIRE((e - b) == ref_size);
+    REQUIRE((ce - cb) == ref_size);
+    REQUIRE((re - rb) == ref_size);
+    REQUIRE((rce - rcb) == ref_size);
 
-    REQUIRE( (get<k::x>(e) - get<k::x>(b)) == ref_size );
-    REQUIRE( (get<k::x>(ce) - get<k::x>(cb)) == ref_size );
-    REQUIRE( (get<k::x>(re) - get<k::x>(rb)) == ref_size );
-    REQUIRE( (get<k::x>(rce) - get<k::x>(rcb)) == ref_size );
+    REQUIRE((get<k::x>(e) - get<k::x>(b)) == ref_size);
+    REQUIRE((get<k::x>(ce) - get<k::x>(cb)) == ref_size);
+    REQUIRE((get<k::x>(re) - get<k::x>(rb)) == ref_size);
+    REQUIRE((get<k::x>(rce) - get<k::x>(rcb)) == ref_size);
 
-
-    REQUIRE((get<k::x>(vec.end().it())  - get<k::x>(vec.begin().it()))  == ref_size);
-    REQUIRE((get<k::y>(vec.end())  - get<k::y>(vec.begin()))  == ref_size);
+    REQUIRE((get<k::x>(vec.end().it()) - get<k::x>(vec.begin().it()))
+            == ref_size);
+    REQUIRE((get<k::y>(vec.end()) - get<k::y>(vec.begin())) == ref_size);
     REQUIRE((get<k::x>(vec.cend()) - get<k::x>(vec.cbegin())) == ref_size);
     REQUIRE((get<k::y>(vec.cend()) - get<k::y>(vec.cbegin())) == ref_size);
   }
@@ -244,9 +248,7 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     scattered::vector<TestType>::const_iterator cmb = mb;
     REQUIRE(cmb == ib);
   }
-  SECTION("Iterators: general tests") {
-
-  }
+  SECTION("Iterators: general tests") {}
   SECTION("Relational operators") {
     /// \todo
     scattered::vector<TestType> new_vec;
@@ -283,14 +285,14 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     new_vec.push_back(tmp_ref);
     auto tmp = scattered::vector<TestType>::to_type(new_vec[0]);
 
-    REQUIRE( tmp == tmp_ref );
+    REQUIRE(tmp == tmp_ref);
 
     TestType tmp_ref2 = {4.0, 3.0, 2, false};
 
     new_vec.push_back(TestType{4.0, 3.0, 2, false});
     auto tmp2 = scattered::vector<TestType>::to_type(new_vec[1]);
 
-    REQUIRE( tmp2 == tmp_ref2 );
+    REQUIRE(tmp2 == tmp_ref2);
   }
   SECTION("Member function: resize") {
     /// \todo
@@ -331,13 +333,13 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
   SECTION("Member function: insert range") {
     scattered::vector<TestType> new_vec;
     new_vec.insert(new_vec.cbegin(), vec.cbegin(), vec.cend());
-    REQUIRE( (long)new_vec.size() == ref_size);
+    REQUIRE(( long )new_vec.size() == ref_size);
     are_equal(new_vec, ref);
     are_equal(vec, ref);
 
     scattered::vector<TestType> new_vec2;
     new_vec2.insert(new_vec2.begin(), vec.begin(), vec.end());
-    REQUIRE((long)new_vec2.size() == ref_size);
+    REQUIRE(( long )new_vec2.size() == ref_size);
     are_equal(new_vec2, ref);
 
     scattered::vector<TestType> new_vec3;

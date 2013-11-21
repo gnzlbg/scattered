@@ -24,8 +24,7 @@ struct is_iterator_test {
 
 template <class T>
 struct is_iterator
-    : decltype(is_iterator_test::test
-               <detail::unqualified_t<T>>(0)) {};
+    : decltype(is_iterator_test::test<detail::unqualified_t<T>>(0)) {};
 
 struct is_adapted_iterator_test {
   template <class U>
@@ -35,8 +34,7 @@ struct is_adapted_iterator_test {
 
 template <class T>
 struct is_adapted_iterator
-    : decltype(is_adapted_iterator_test::test
-               <detail::unqualified_t<T>>(0)) {};
+    : decltype(is_adapted_iterator_test::test<detail::unqualified_t<T>>(0)) {};
 
 }  // namespace get_detail
 
