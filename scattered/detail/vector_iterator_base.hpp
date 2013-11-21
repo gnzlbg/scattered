@@ -32,12 +32,18 @@ namespace detail {
 template <class const_tag, class column_types, class column_tags,
           template <class> class container_type>
 class vector_iterator_base {
+ public:
   /// \name Utility aliases
   ///@{
   using types = column_types;
   using tags = column_tags;
   using container = container_traits<types, tags, container_type>;
   using This = vector_iterator_base<const_tag, types, tags, container_type>;
+  using const_This = vector_iterator_base
+      <const const_tag, types, tags, container_type>;
+  using non_const_This = vector_iterator_base
+      <std::remove_cv_t<const_tag>, types, tags, container_type>;
+  friend non_const_This;
   static const constexpr bool is_const = std::is_const<const_tag>::value;
   ///@}
 
@@ -46,6 +52,7 @@ class vector_iterator_base {
   using iterator_map = std::conditional_t
       <!is_const, typename container::iterator_type,
        typename container::const_iterator_type>;
+  using const_iterator_map = typename const_This::iterator_map;
   using reference_map = std::conditional_t
       <!is_const, typename container::reference_type,
        typename container::const_reference_type>;
@@ -83,34 +90,56 @@ class vector_iterator_base {
     auto operator=(reference_map&& other)
         RETURNS(assign_(std::move(other), *this));
     auto operator=(reference&& other) RETURNS(assign_(std::move(other), *this));
+
+    template <class L, class R>
+    friend inline bool operator==(L l, R r) noexcept {
+      return boost::fusion::all(boost::fusion::zip(l, r), Eq());
+    }
+    template <class L, class R>
+    friend inline bool operator<=(L l, R r) noexcept {
+      return boost::fusion::all(boost::fusion::zip(l, r), LEq());
+    }
+    template <class L, class R>
+    friend inline bool operator>=(L l, R r) noexcept {
+      return boost::fusion::all(boost::fusion::zip(l, r), GEq());
+    }
+    template <class L, class R>
+    friend inline bool operator!=(L l, R r) noexcept {
+      return !(l == r);
+    }
+    template <class L, class R>
+    friend inline bool operator<(L l, R r) noexcept {
+      return !(l >= r);
+    }
+    template <class L, class R>
+    friend inline bool operator>(L l, R r) noexcept {
+      return !(l <= r);
+    }
   };
   ///@}
 
   /// DefaultConstructible/CopyConstructible/MoveConstructible
   /// @{
   vector_iterator_base() = default;
-  vector_iterator_base(iterator_map&& it) noexcept : it_(std::move(it)) {}
-  vector_iterator_base(iterator_map const& it) noexcept : it_(it) {}
-  vector_iterator_base(vector_iterator_base&& it) noexcept
-      : it_(std::move(it.it_)) {}
-  vector_iterator_base(vector_iterator_base const& it) noexcept : it_(it.it_) {}
-
-  vector_iterator_base& operator=(iterator_map const& it) noexcept {
+  vector_iterator_base(This const& it) noexcept : it_(it.it_) {}
+  vector_iterator_base(This&& it) noexcept : it_(std::move(it.it_)) {}
+  This& operator=(iterator_map const& it) noexcept {
     it_ = it;
     return *this;
   }
-  vector_iterator_base& operator=(vector_iterator_base const& it) noexcept {
+  This& operator=(This const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
-  vector_iterator_base& operator=(iterator_map&& it) noexcept {
+  This& operator=(iterator_map&& it) noexcept {
     it_ = std::move(it);
     return *this;
   }
-  vector_iterator_base& operator=(vector_iterator_base&& it) noexcept {
+  This& operator=(This&& it) noexcept {
     it_ = std::move(it.it_);
     return *this;
   }
+
   ///@}
 
   /// \name Comparison operators (==, !=, <, >, <=, >=)
@@ -177,7 +206,8 @@ class vector_iterator_base {
                         - boost::fusion::at_c<0>(r.it_).second;
 
     assert(boost::fusion::accumulate(boost::fusion::zip(l.it_, r.it_), result,
-                                     check_distance()));
+                                     check_distance()) == result
+           && "column types have different sizes!\n");
     return result;
   }
   ///@}
@@ -188,7 +218,35 @@ class vector_iterator_base {
   inline reference operator*() const noexcept { return ref_from_it(it_); }
   inline reference operator->() noexcept { return *(*this); }
   inline reference operator[](const difference_type v) noexcept {
-    return *boost::fusion::transform(it_, Increment(v));
+    return ref_from_it(boost::fusion::transform(it_, Increment(v)));
+  }
+  ///@}
+
+  /// \name Conversion operator
+  ///@{
+
+  template
+      <typename T,
+       typename = typename std::enable_if
+       <!is_const && std::is_same
+        <std::remove_cv_t<std::remove_reference_t<T>>, const_This>::value
+        && !std::is_same
+           <std::remove_cv_t<std::remove_reference_t<T>>, iterator_map>::value
+        && !std::is_same<std::remove_cv_t<std::remove_reference_t<T>>,
+                         const_iterator_map>::value>::type>
+  operator T() {
+    static_assert(!is_const, "a const_iterator doesn't need conversion");
+    static_assert(
+        std::is_same
+        <std::remove_reference_t<decltype(*this)>, non_const_This>::value,
+        "this is a const_iterator");
+    static_assert(std::is_same<T, const_This>::value,
+                  "iterator can convert only to const_iterator");
+    static_assert(std::is_same
+                  <std::remove_reference_t<decltype(cit_from_it(*this))>,
+                   const_This>::value,
+                  "conversion doesn't return a const_iterator");
+    return const_This{cit_from_it(*this)};
   }
   ///@}
 
@@ -200,9 +258,37 @@ class vector_iterator_base {
 
   /// \brief Equality
   struct Eq {
-    template <class T> inline bool operator()(T&& i) const noexcept {
+    template <class T>
+    using remove_q = std::remove_cv_t<std::remove_reference_t<T>>;
+
+    template <class T>
+    inline auto operator()(T&& i) const noexcept
+        -> decltype(
+              std::enable_if_t
+              <!std::is_floating_point
+               <remove_q<decltype(boost::fusion::at_c<0>(i).second)>>::value,
+               bool>()) {
+      using type0 = remove_q<decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = remove_q<decltype(boost::fusion::at_c<1>(i).second)>;
+      static_assert(std::is_same<type0, type1>::value,
+                    "Expecting the same type");
       return boost::fusion::at_c<0>(i).second == boost::fusion::at_c
                                                  <1>(i).second;
+    }
+    template <class T>
+    inline auto operator()(T&& i) const noexcept
+        -> decltype(
+              std::enable_if_t
+              <std::is_floating_point
+               <remove_q<decltype(boost::fusion::at_c<0>(i).second)>>::value,
+               bool>()) {
+      using type0 = remove_q<decltype(boost::fusion::at_c<0>(i).second)>;
+      using type1 = remove_q<decltype(boost::fusion::at_c<1>(i).second)>;
+      static_assert(std::is_same<type0, type1>::value,
+                    "Expecting the same type");
+      return std::abs(boost::fusion::at_c<0>(i).second
+                      - boost::fusion::at_c<1>(i).second) < std::numeric_limits
+             <type0>::epsilon();
     }
   };
 
@@ -261,10 +347,7 @@ class vector_iterator_base {
     inline T operator()(const T acc, const U i) const noexcept {
       const auto tmp = boost::fusion::at_c<0>(i).second - boost::fusion::at_c
                                                           <1>(i).second;
-      if (!(acc == tmp)) {
-        std::cerr << "column types have different sizes!!\n";
-        assert(acc == tmp);
-      }
+      assert(acc == tmp && "column types have different sizes!!\n");
       return tmp;
     }
   };
@@ -294,6 +377,19 @@ class vector_iterator_base {
     U i;
   };
 
+  template <class U> struct it_to_cit {
+    it_to_cit(U v_) : i(v_) {}
+    template <class T> inline auto operator()(const T&) const noexcept {
+      using key = typename T::first_type;
+      using value = std::remove_reference_t
+          <decltype(typename T::second_type())>;
+      return boost::fusion::make_pair
+          <key, typename container::template const_iterator
+           <typename value::value_type>::type>(boost::fusion::at_key<key>(i));
+    }
+    U i;
+  };
+
  public:
   static inline reference_map ref_from_val(value_type& v) noexcept {
     return boost::fusion::transform(v, val_to_ref<value_type>{v});
@@ -304,9 +400,24 @@ class vector_iterator_base {
   static inline reference_map ref_from_it(const iterator_map& v) noexcept {
     return boost::fusion::transform(v, it_to_ref<iterator_map>{v});
   }
+
+  static inline const_This cit_from_it(const This& v) noexcept {
+    return const_This::from_map(
+        boost::fusion::transform(v.it_, it_to_cit<iterator_map>{v.it_}));
+  }
+
+  static vector_iterator_base from_map(iterator_map it) {
+    This tmp;
+    tmp.it_ = it;
+    return tmp;
+  }
+
+  auto it() RETURNS(it_);
+  auto it() const RETURNS(it_);
 };
 
 }  // namespace detail
 
 }  // namespace scattered
+
 #endif  // SCATTERED_DETAIL_VECTOR_ITERATOR_BASE_HPP

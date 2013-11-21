@@ -19,9 +19,14 @@ struct TestType {
     struct i {};
     struct b {};
   };
+
+  friend inline bool operator==(const TestType& l, const TestType& r) {
+    return (std::abs(l.x - r.x) < std::numeric_limits<float>::epsilon())
+           && (std::abs(l.y - r.y) < std::numeric_limits<double>::epsilon())
+           && l.i == r.i && l.b == r.b;
+  }
 };
 
-// This adapts the struct as an associative fusion sequence
 BOOST_FUSION_ADAPT_ASSOC_STRUCT(
     TestType, (float, x, TestType::k::x)(double, y, TestType::k::y)(
                   int, i, TestType::k::i)(bool, b, TestType::k::b))

@@ -7,6 +7,5 @@
 #define SCATTERED_VECTOR_HPP
 
 #include "detail/vector.hpp"
-#include "detail/get.hpp"
 
 #endif  // SCATTERED_VECTOR_HPP

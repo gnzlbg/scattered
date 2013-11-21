@@ -21,9 +21,6 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   set(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS} -L${LIBCXX_LIBRARY} -lc++")
   message("linker flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
-  # link using clang or the sanitizers _might_ fail to link:
-  set(CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_COMPILER})
-
   # compiler flags:
   set(CMAKE_CXX_FLAGS_LIST
     "-arch x86_64" "-Wall" "-Wextra" "-std=c++1y" "-stdlib=libc++"

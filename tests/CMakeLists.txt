@@ -1,2 +1,2 @@
 add_scattered_test(vector)
-add_scattered_test(example)
+#add_scattered_test(example)

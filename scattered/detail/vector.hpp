@@ -21,6 +21,7 @@
 #include "fusion_swap.hpp"
 #include "as_fusion_map.hpp"
 #include "vector_iterator_base.hpp"
+#include "get.hpp"
 
 namespace scattered {
 
@@ -66,6 +67,7 @@ class vector {
  public:
   /// Container traits
   ///{@
+  template <class U> using container_type = Container<U>;
   using size_type = std::size_t;
   using iterator = typename detail::vector_iterator_base
       <const_tag, values, keys, Container>;
@@ -83,7 +85,7 @@ class vector {
 
   /// Constructors
   ///@{
-  explicit vector(size_type n) { resize(n); }
+  explicit vector(size_type n = 0) { resize(n); }
   vector(const vector& other) : data_(other.data_) {}
   vector(vector&& other) : data_(std::move(other.data_)) {}
 
@@ -130,16 +132,18 @@ class vector {
 
  public:
   inline iterator begin() {
-    return iterator{boost::fusion::transform(data_, make_begin_it())};
+    return iterator::from_map(boost::fusion::transform(data_, make_begin_it()));
   }
   inline iterator end() {
-    return iterator{boost::fusion::transform(data_, make_end_it())};
+    return iterator::from_map(boost::fusion::transform(data_, make_end_it()));
   }
   inline const_iterator begin() const {
-    return const_iterator{boost::fusion::transform(data_, make_cbegin_it())};
+    return const_iterator::from_map(
+        boost::fusion::transform(data_, make_cbegin_it()));
   }
   inline const_iterator end() const {
-    return const_iterator{boost::fusion::transform(data_, make_cend_it())};
+    return const_iterator::from_map(
+        boost::fusion::transform(data_, make_cend_it()));
   }
   inline const_iterator cbegin() const { return begin(); }
   inline const_iterator cend() const { return end(); }
@@ -181,10 +185,8 @@ class vector {
   constexpr const_reference back() const { return *cend(); }
   data_type& data() { return data_; }
   data_type const& data() const { return data_; }
-  template <class K> auto& data() { return boost::fusion::at_key<K>(data_); }
-  template <class K> auto const& data() const {
-    return boost::fusion::at_key<K>(data_);
-  }
+  template <class K> auto& data() { return get<K>(data_); }
+  template <class K> auto const& data() const { return get<K>(data_); }
   ///@}
 
   /// Capacity
@@ -222,24 +224,48 @@ class vector {
   void clear() {
     boost::fusion::for_each(data_, [](auto i) { i.second.clear(); });
   }
-  iterator insert(iterator pos, const T& value) {
-    const auto offset = pos - begin();
+  iterator insert(const_iterator pos, const T& value) {
+    const auto offset = pos - cbegin();
     boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
                             [&](auto&& i) {
       using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-      auto local_pos = boost::fusion::at_key<key>(data_).begin() + offset;
-      boost::fusion::at_key
-          <key>(data_).insert(local_pos, boost::fusion::at_c<1>(i));
+      auto local_pos = get<key>(data_).cbegin() + offset;
+      get<key>(data_).insert(local_pos, boost::fusion::at_c<1>(i));
     });
+    return begin() + offset;
   }
-  // iterator insert( const_iterator pos, const T& value );
-  // iterator insert( const_iterator pos, T&& value );
-  // void insert( iterator pos, size_type count, const T& value );
   // iterator insert( const_iterator pos, size_type count, const T& value );
-  // template<class InputIt>
-  // void insert( iterator pos, InputIt first, InputIt last);
-  // template<class InputIt>
-  // iterator insert( const_iterator pos, InputIt first, InputIt last );
+  template <class InputIt>
+  iterator insert(const_iterator pos, InputIt first, InputIt last) {
+    std::cerr << "range insert: " << last - first << "\n";
+    boost::fusion::for_each(zip(first.it(), last.it()), [](auto&& i) {
+      std::cerr << "rc: l - f: " << &*boost::fusion::at_c<1>(i).second << " - "
+                << &*boost::fusion::at_c<0>(i).second << " = "
+                << boost::fusion::at_c<1>(i).second - boost::fusion::at_c
+                                                      <0>(i).second << "\n";
+    });
+    const auto offset = pos - cbegin();
+    if (first != last) {
+      boost::fusion::for_each(data_, [&](auto&& i) {
+        using key = key_of_t
+            <std::remove_cv_t<std::remove_reference_t<decltype(i)>>>;
+        using local_const_iterator = typename std::remove_cv_t
+            <std::remove_reference_t<decltype(i.second)>>::const_iterator;
+        auto local_pos = i.second.cbegin() + offset;
+        // auto fIt = boost::fusion::at_key<key>(first.it());
+        // auto lIt = boost::fusion::at_key<key>(last.it());
+        // auto fIt = get<key>(first.it());
+        // auto lIt = get<key>(last.it());
+        auto fIt = get<key>(first);
+        auto lIt = get<key>(last);
+        std::cerr << "l - f: " << &*lIt << " - " << &*fIt << " = " << lIt - fIt
+                  << "\n";
+        i.second.insert(local_pos, fIt, lIt);
+      });
+    }
+    return begin() + offset;
+  };
+
   iterator erase(iterator pos) {
     const auto offset = pos - begin();
     boost::fusion::for_each(data_, [&](auto&& i) {
@@ -273,28 +299,29 @@ class vector {
     });
   }
   void push_back(const T& value) {
-    boost::fusion::for_each(zip(MemberMap{}, value), [&](auto&& i) {
+    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
+                            [&](auto&& i) {
       using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-      boost::fusion::at_key<key>(data_).push_back(boost::fusion::at_c<1>(i));
+      get<key>(data_).push_back(boost::fusion::at_c<1>(i));
     });
   };
   void push_back(T&& value) {
-    boost::fusion::for_each(zip(MemberMap{}, value), [&](auto&& i) {
+    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
+                            [&](auto&& i) {
       using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-      boost::fusion::at_key
-          <key>(data_).emplace_back(boost::fusion::at_c<1>(std::move(i)));
+      get<key>(data_).emplace_back(boost::fusion::at_c<1>(std::move(i)));
     });
   };
   void push_back(const value_type& value) {
     boost::fusion::for_each(value, [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
-      boost::fusion::at_key<key>(data_).push_back(i.second);
+      get<key>(data_).push_back(i.second);
     });
   };
   void push_back(value_type&& value) {
     boost::fusion::for_each(std::move(value), [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
-      boost::fusion::at_key<key>(data_).emplace_back(std::move(i.second));
+      get<key>(data_).emplace_back(std::move(i.second));
     });
   };
   void pop_back() {
@@ -314,17 +341,20 @@ class vector {
   }
 
   friend bool operator==(const vector& lhs, const vector& rhs) {
-    return boost::fusion::all(zip(lhs.data_, rhs.data_), [](auto&& i) {
+    return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
+                              [](auto&& i) {
       return boost::fusion::at_c<0>(i) == boost::fusion::at_c<1>(i);
     });
   }
   friend bool operator<=(const vector& lhs, const vector& rhs) {
-    return boost::fusion::all(zip(lhs.data_, rhs.data_), [](auto&& i) {
+    return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
+                              [](auto&& i) {
       return boost::fusion::at_c<0>(i) <= boost::fusion::at_c<1>(i);
     });
   }
   friend bool operator>=(const vector& lhs, const vector& rhs) {
-    return boost::fusion::all(zip(lhs.data_, rhs.data_), [](auto&& i) {
+    return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
+                              [](auto&& i) {
       return boost::fusion::at_c<0>(i) >= boost::fusion::at_c<1>(i);
     });
   }
@@ -345,25 +375,30 @@ class vector {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
-      boost::fusion::at_key<key>(tmp) = i.second;
+      get<key>(tmp) = i.second;
     });
     return tmp;
   }
-
+  static T& to_type(T& t) { return t; }
+  static T to_type(T&& t) { return t; }
   static T to_type(const_reference ref) {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
-      boost::fusion::at_key<key>(tmp) = i.second;
+      get<key>(tmp) = i.second;
     });
     return tmp;
   }
-
+  static value_type& from_type(value_type& value) { return value; }
+  static value_type from_type(value_type&& value) { return value; }
+  static reference from_type(reference&& value) { return value; }
+  static reference& from_type(reference& value) { return value; }
   static value_type from_type(T& value) {
     value_type tmp;
-    boost::fusion::for_each(zip(MemberMap{}, value), [&](auto&& i) {
+    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
+                            [&](auto&& i) {
       using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
-      boost::fusion::at_key<key>(tmp) = boost::fusion::at_c<1>(i);
+      get<key>(tmp) = boost::fusion::at_c<1>(i);
     });
     return tmp;
   }
