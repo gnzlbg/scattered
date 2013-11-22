@@ -69,9 +69,9 @@ class vector {
   template <class U> using container_type = Container<U>;
   using size_type = std::size_t;
   using iterator = typename detail::vector_iterator_base
-      <false, values, keys, Container>;
+      <false, values, keys, Container, T>;
   using const_iterator = typename detail::vector_iterator_base
-      <true, values, keys, Container>;
+      <true, values, keys, Container, T>;
   using value_type = typename iterator::value_type;
   using reference = typename iterator::reference;
   using const_reference = typename const_iterator::reference;

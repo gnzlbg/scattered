@@ -10,7 +10,7 @@
 #include "test_types.hpp"
 #include "scattered/vector.hpp"
 
-#define DEBUG_OUTPUT
+//#define DEBUG_OUTPUT
 
 /// Pretty print for debugging
 ///@{
@@ -247,6 +247,31 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     auto ib = e_vec.cbegin();
     scattered::vector<TestType>::const_iterator cmb = mb;
     REQUIRE(cmb == ib);
+
+    scattered::vector<TestType>::const_iterator cit = e_vec.cbegin();
+    scattered::vector<TestType>::const_iterator cit2 = e_vec.begin();
+    REQUIRE(cit == cit2);
+    // this should fail to compile:
+    // scattered::vector<TestType>::iterator cit3 = e_vec.cbegin();
+  }
+  SECTION("Iterators: references") {
+    auto reference = *vec.begin();
+
+    static_assert(
+        std::is_same
+        <decltype(reference), typename scattered::vector<TestType>::reference>::value,
+        "wrong reference type");
+
+    TestType test = { 5.0, 4.0, 1, false };
+    reference = test;
+    auto modified = scattered::vector<TestType>::to_type(reference);
+
+    REQUIRE( modified == test );
+
+    TestType other = *vec.begin();
+    TestType cother = *vec.cbegin();
+    REQUIRE (other == test);
+    REQUIRE (cother == test);
   }
   SECTION("Iterators: general tests") {}
   SECTION("Relational operators") {
@@ -414,8 +439,13 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     auto result = new_ref == (ref | boost::adaptors::reversed);
     REQUIRE(result);
 
+    for(auto i : vec | boost::adaptors::reversed) {
+      std::cout << "(" << get<k::x>(i) << ", " << get<k::y>(i) << ", "
+                << get<k::i>(i) << ", " << get<k::b>(i) << ")\n";
+    }
+
     // boost::push_back(new_vec, vec | boost::adaptors::reversed);
-    // are_equal(new_vec, new_ref);
+    are_equal(new_vec, new_ref);
 
     print_container("After push_back | reversed", vec);
   }

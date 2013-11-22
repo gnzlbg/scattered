@@ -49,16 +49,14 @@ auto get(C&& c) RETURNS(boost::fusion::at_key<K>(std::forward<C>(c)));
 template <class K, class C,
           std::enable_if_t<get_detail::is_iterator<C>::value, int> = 0>
 auto get(C&& c) noexcept {
-  auto tmp = get<K>(std::forward<decltype(c.it())>(c.it()));
-  return tmp;
+  return get<K>(std::forward<decltype(c.it())>(c.it()));
 }
 
 /// \brief Get element at key for an adapted iterator
 template <class K, class C,
           std::enable_if_t<get_detail::is_adapted_iterator<C>::value, int> = 0>
 auto get(C&& c) {
-  auto tmp = get<K>(std::forward<decltype(c.base())>(c.base()));
-  return tmp;
+  return get<K>(std::forward<decltype(c.base())>(c.base()));
 }
 
 }  // namespace scattered

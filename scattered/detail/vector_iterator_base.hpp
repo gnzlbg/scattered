@@ -19,10 +19,12 @@
 #include <boost/fusion/algorithm/transformation/transform.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
 #include <boost/fusion/algorithm/transformation/zip.hpp>
+#include "assert.hpp"
 #include "returns.hpp"
 #include "map_mutation.hpp"
 #include "container_traits.hpp"
 #include "unqualified.hpp"
+#include "get.hpp"
 
 namespace scattered {
 
@@ -31,7 +33,7 @@ namespace detail {
 /// \brief RandomAccessIterator for scattered::vector container
 /// If const_tag is const -> const_iterator, otherwise -> iterator
 template <bool is_const_, class column_types, class column_tags,
-          template <class> class container_type>
+          template <class> class container_type, class original_type>
 class vector_iterator_base {
  public:
   /// \name Utility aliases
@@ -40,13 +42,15 @@ class vector_iterator_base {
   using types = column_types;
   using tags = column_tags;
   using container = container_traits<types, tags, container_type>;
-  using This = vector_iterator_base<is_const, types, tags, container_type>;
-  using const_This = vector_iterator_base<true, types, tags, container_type>;
+  using This = vector_iterator_base
+      <is_const, types, tags, container_type, original_type>;
+  using const_This = vector_iterator_base
+      <true, types, tags, container_type, original_type>;
   friend const_This;
   using non_const_This = vector_iterator_base
-      <false, types, tags, container_type>;
+      <false, types, tags, container_type, original_type>;
   friend non_const_This;
-
+  using original_value_type = original_type;
   ///@}
 
   /// \name Map types
@@ -76,6 +80,28 @@ class vector_iterator_base {
       <!is_const, typename container::pointer_type,
        typename container::const_pointer_type>;
 
+
+  /// \name REFACTOR THIS \todo refactor this
+  ///@{
+  using MemberMap = typename detail::as_fusion_map<original_value_type>::type;
+
+  template <class P> struct key_of {
+    using type = typename detail::unqualified_t<P>::first_type;
+  };
+  template <class P> using key_of_t = typename key_of<P>::type;
+
+
+  static value_type from_type(original_value_type& value) {
+    value_type tmp;
+    boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
+                            [&](auto&& i) {
+      using key = key_of_t<decltype(boost::fusion::at_c<0>(i))>;
+      get<key>(tmp) = boost::fusion::at_c<1>(i);
+    });
+    return tmp;
+  }
+  ///@}
+
   struct reference : reference_map {
     reference(const reference& r) noexcept : reference_map(r) {};
     reference(const reference_map& r) noexcept : reference_map(r) {};
@@ -92,6 +118,23 @@ class vector_iterator_base {
     auto operator=(reference_map&& other)
         RETURNS(assign_(std::move(other), *this));
     auto operator=(reference&& other) RETURNS(assign_(std::move(other), *this));
+
+    /// \todo this should take a reference
+    auto operator=(original_value_type other) RETURNS(assign_(from_type(other), *this));
+
+    /// \todo refactor this
+    static original_value_type to_type(reference ref) {
+      original_value_type tmp;
+      boost::fusion::for_each(ref, [&](auto&& i) {
+          using key = key_of_t<decltype(i)>;
+          get<key>(tmp) = i.second;
+        });
+      return tmp;
+    }
+
+    operator original_value_type() {
+      return to_type(*this);
+    }
 
     template <class L, class R>
     friend inline bool operator==(L l, R r) noexcept {
@@ -221,9 +264,9 @@ class vector_iterator_base {
     const auto result = boost::fusion::at_c<0>(l.it_).second
                         - boost::fusion::at_c<0>(r.it_).second;
 
-    assert(boost::fusion::accumulate(boost::fusion::zip(l.it_, r.it_), result,
-                                     check_distance()) == result
-           && "column types have different sizes!\n");
+    ASSERT(boost::fusion::accumulate(boost::fusion::zip(l.it_, r.it_), result,
+                                     check_distance()) == result,
+           "column types have different sizes");
     return result;
   }
   ///@}
@@ -338,7 +381,7 @@ class vector_iterator_base {
     inline T operator()(const T acc, const U i) const noexcept {
       const auto tmp = boost::fusion::at_c<0>(i).second - boost::fusion::at_c
                                                           <1>(i).second;
-      assert(acc == tmp && "column types have different sizes!!\n");
+      ASSERT(acc == tmp, "column types have different sizes!");
       return tmp;
     }
   };

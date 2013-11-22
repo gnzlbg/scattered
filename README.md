@@ -1,20 +1,12 @@
 #### Introduction
 
-In C++, object data members are laid out contiguously in memory. Scattered
-containers store each object's data members sequentially in memory. This
-significantly improves the cache performance of algorithms that iterate
-sequentially over a container but access only a small subset of its members in
-each pass.
+Scattered containers store each data member sequentially in memory. This
+improves cache line usage when only a subset of the data members is accessed
+during sequential container traversals.
 
-Scattered containers is a header only C++1y library that depends on Boost.MPL
-and Boost.Fusion. There is no need to build the library in order to use it in
-your project. The library works successfully with trunk clang/libc++ as well
-as with Boost 1.54. It is provided under the [Boost Software
-License](http://www.boost.org/LICENSE_1_0.txt).
-
-The following containers are provided:
-
-- `scattered::vector<T>`
+Scattered is a [Boost Software License](http://www.boost.org/LICENSE_1_0.txt)'d
+header only C++1y library that depends on Boost.MPL and Boost.Fusion. It is
+currently tested with Boost 1.54 and trunk clang/libc++.
 
 #### Example: scattered::vector<T>
 
@@ -22,26 +14,36 @@ The following containers are provided:
 #include <algorithm>
 #include <boost/range/algorithm.hpp>
 #include <boost/fusion/adapted/struct/adapt_assoc_struct.hpp>
+#include <stdio.h>
 #include "scattered/vector.hpp"
 
-/// A is a struct and k contains tags to be used as keys:
-struct A {
+
+/// T is a struct; k contains keys to access the struct elements:
+struct T {
   float x; double y; int i; bool b;
   struct k { struct x {}; struct y {}; struct i {}; struct b {}; };
 };
 
 // This adapts the class as an associative fusion sequence
 BOOST_FUSION_ADAPT_ASSOC_STRUCT(
-    A, (float, x, A::k::x)(double, y, A::k::y)
-       (int  , i, A::k::i)(bool  , b, A::k::b))
+    T, (float, x, T::k::x)(double, y, T::k::y)
+       (int  , i, T::k::i)(bool  , b, T::k::b))
+
+auto print_t(T t)
+{ printf("(x = %2g, y = %2g, i = %2i, b = %i)\n", t.x, t.y, t.i, t.b); }
+
+template<class C> auto print(C&& c) {
+  printf("start:\n");
+  for(T t : c) { print_t(t); }
+  printf("end:\n");
+}
 
 int main() {
   using scattered::get;
-  using k = A::k;
+  using k = T::k;
 
-  scattered::vector<A> vec(10);  ///< Make a vector of A with 10 elements
+  scattered::vector<T> vec(10);
 
-  /// We access each element with get<> + its key:
   int count = 0;
   for (auto i : vec) {
     get<k::x>(i) = static_cast<float>(count);
@@ -50,21 +52,24 @@ int main() {
     get<k::b>(i) = count % 2 == 0;
     ++count;
   }
+  print(vec);
 
   /// Boost and STL algorithms work out of the box
   boost::stable_sort(vec, [](auto i, auto j) {
     return get<k::x>(i) > get<k::x>(j);
   });
+  print(vec);
 
   /// from_type/to_type convert from/to the original type:
-  boost::transform(vec, std::begin(vec), [](auto i) {
-      A tmp = scattered::vector<A>::to_type(i);
-      tmp.x *= tmp.x; tmp.y *= tmp.y; tmp.i *= tmp.i; tmp.b *= tmp.b;
-      return scattered::vector<A>::from_type(tmp);
+  boost::transform(vec, std::begin(vec), [](T i) {
+      i.x *= i.x; i.y *= i.y; i.i *= i.i; i.b *= i.b;
+     return i;
   });
+  print(vec);
 
-  A tmp = {4.0, 3.0, 2, false};
-  vec.push_back(tmp);  ///< Or just: vec.push_back(A{4.0, 3.0, 2, false});
+  T tmp = {4.0, 3.0, 2, false};
+  vec.push_back(tmp);
+  print(vec);
 }
 ```
 
