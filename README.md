@@ -1,14 +1,14 @@
 #### Introduction
 
-Scattered containers store each data member sequentially in memory. This
-improves cache line usage when only a subset of the data members is accessed
-during sequential container traversals.
+Scattered containers store each object's data member sequentially in
+memory. This improves cache line utilization when iterating sequentially over a
+container without accessing all object's data members.
 
 Scattered is a [Boost Software License](http://www.boost.org/LICENSE_1_0.txt)'d
-header only C++1y library that depends on Boost.MPL and Boost.Fusion. It is
-currently tested with Boost 1.54 and trunk clang/libc++.
+header only C++1y library. It depends on Boost.MPL and Boost.Fusion, and is
+tested with Boost 1.54 and trunk clang/libc++.
 
-#### Example: scattered::vector<T>
+##### Example: scattered::vector<T>
 
 ```c++
 #include <algorithm>
@@ -17,26 +17,16 @@ currently tested with Boost 1.54 and trunk clang/libc++.
 #include <stdio.h>
 #include "scattered/vector.hpp"
 
-
 /// T is a struct; k contains keys to access the struct elements:
 struct T {
   float x; double y; int i; bool b;
   struct k { struct x {}; struct y {}; struct i {}; struct b {}; };
 };
 
-// This adapts the class as an associative fusion sequence
+/// This adapts the class as an associative fusion sequence
 BOOST_FUSION_ADAPT_ASSOC_STRUCT(
     T, (float, x, T::k::x)(double, y, T::k::y)
        (int  , i, T::k::i)(bool  , b, T::k::b))
-
-auto print_t(T t)
-{ printf("(x = %2g, y = %2g, i = %2i, b = %i)\n", t.x, t.y, t.i, t.b); }
-
-template<class C> auto print(C&& c) {
-  printf("start:\n");
-  for(T t : c) { print_t(t); }
-  printf("end:\n");
-}
 
 int main() {
   using scattered::get;
@@ -44,6 +34,8 @@ int main() {
 
   scattered::vector<T> vec(10);
 
+  /// To modify the elements of the vector in place
+  /// the keys are used on a reference proxy:
   int count = 0;
   for (auto i : vec) {
     get<k::x>(i) = static_cast<float>(count);
@@ -52,24 +44,16 @@ int main() {
     get<k::b>(i) = count % 2 == 0;
     ++count;
   }
-  print(vec);
 
   /// Boost and STL algorithms work out of the box
   boost::stable_sort(vec, [](auto i, auto j) {
     return get<k::x>(i) > get<k::x>(j);
   });
-  print(vec);
 
-  /// from_type/to_type convert from/to the original type:
-  boost::transform(vec, std::begin(vec), [](T i) {
-      i.x *= i.x; i.y *= i.y; i.i *= i.i; i.b *= i.b;
-     return i;
-  });
-  print(vec);
+  /// Reference proxy implicitly converts to T
+  boost::transform(vec, std::begin(vec), [](T i) { i.y *= i.y; return i; });
 
-  T tmp = {4.0, 3.0, 2, false};
-  vec.push_back(tmp);
-  print(vec);
+  vec.push_back(T{4.0, 3.0, 2, false});
 }
 ```
 
@@ -81,37 +65,60 @@ int main() {
  - `make check-format` / `make update-format` check/update the file formatting
     with clang-format.
 
-#### Tutorial (WIP)
+#### Tutorial
 
-Scattered works on associative Boost.Fusion sequences. You can use
+The following containers are available:
+  - `scattered::vector<T>` (analogous to `std::vector<T>`).
+
+##### Caveats
+
+Scattered containers use proxy reference types and, as a consequence, have the
+following caveats:
+
+```c++
+// i's type = scattered::vector<T>::reference, not scattered::vector<T>::value_type
+auto  i = *scatteredVector.begin();
+
+// j's type = scattered::vector<T>::reference&
+auto& j = *scatteredVector.begin();
+
+// this modifies scatteredVector:
+i = T{};
+
+// to get a value you need to use value_type (or T)
+T value = *scatteredVector.begin();
+```
+
+These are the same caveats of `std::vector<bool>`.
+
+##### Main idea behind implementation
+
+Scattered relies on
 [BOOST_FUSION_ADAPT_ASSOC_X](http://www.boost.org/doc/libs/1_55_0/libs/fusion/doc/html/fusion/adapted.html)
-to adapt structs as associative Boost.Fusion sequences.
+to adapt classes as associative Boost.Fusion sequences. The
+`scattered::get<key>(reference_proxy)` function returns a reference to the
+object data member associated with the key.
 
-The keys of the associative sequences are then used to access the object
-elements within the scattered containers by means of `scattered::at<key>`.
-It is good practice to define the keys within the class itself. However,
-sometimes one cannot modify the class. In this case, the keys can be defined
-outside the class, e.g. inside a `class_name_keys` namespace.
+#### Benchmarks
 
-#### Benchmarks (WIP)
-
-The aim of the library is to maximize memory bandwidth usage by using cache
-lines efficiently. Memory bandwidth usage is one of the most important aspects
-to consider when discussing performance of modern CPUs.
+The aim of the library is to maximize memory bandwidth usage for algorithms that
+iterate *sequentially* over the container.
 
 #### Todo:
 
-For the first milestone `scattered::vector` will be provided. Future milestones
-will provide `scattered::flat_set` and `scattered::unordered_map`. See the
-[roadmaps](https://github.com/gnzlbg/scattered/issues) in the issue list.
+See the [roadmaps](https://github.com/gnzlbg/scattered/issues) page in the issue
+list.
+
+- Finish: `scattered::vector` will be provided.
+- Provide other containers, e.g. `scattered::flat_set` and `scattered::unordered_map`.
 
 #### Acknowledgments
 
-The Scattered library resulted from my efforts to improve the cache performance
-of the numerical codes in use at the Institute of Aerodynamics, Aachen. This
-probably would never have happened if Georg Geiser wouldn't have introduced me
-to [What Every Programmer Should Know About
+The Scattered library resulted from efforts to improve the cache performance of
+numerical fluid mechanics codes at the Institute of Aerodynamics, Aachen. I'd
+like to thank Georg Geiser for introducing me to [What Every Programmer Should
+Know About
 Memory](http://people.freebsd.org/~lstewart/articles/cpumemory.pdf). Furthermore,
-I want to thank the guest of the LoungeC++ at stackoverflow.com for their
-fruitful discussions. In particular, to Evgeny Panasyuk who motivated me to
-write this library.
+I want to thank the guests of the LoungeC++@stackoverflow.com for their
+discussions, company, and help. In particular, to Evgeny Panasyuk who motivated
+me to write this library.
