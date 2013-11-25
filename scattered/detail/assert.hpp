@@ -8,6 +8,7 @@
 #if !defined(SCATTERED_DETAIL_ASSERT_HPP)
 #define SCATTERED_DETAIL_ASSERT_HPP
 
+#include <cassert>
 #include <stdio.h>
 
 /// \brief Asserts a condition in DEBUG mode. Useful for checking
@@ -20,7 +21,7 @@
 #define ASSERT(condition, message)                                           \
   do {                                                                       \
     if (!(condition)) {                                                      \
-      printf("\nAssertion %s failed in function: %s, in file: %s, at line: " \
+      fprintf(stderr, "\nAssertion %s failed in function: %s, in file: %s, at line: " \
              "%i.\nDiagnostic message: %s\n\n",                         \
              "" #condition "", __func__, __FILE__, __LINE__, message);       \
       assert(false);                                                         \
@@ -31,7 +32,7 @@
 #define ASSERT(condition, message)                                           \
   do {                                                                       \
     if (0 && (condition)) {                                                  \
-      printf("\nAssertion %s failed in function: %s, in file: %s, at line: " \
+      fprintf(stderr, "\nAssertion %s failed in function: %s, in file: %s, at line: " \
              "%i.\nDiagnostic message: %s\n\n",                         \
              "" #condition "", __func__, __FILE__, __LINE__, message);       \
       std::exit(EXIT_FAILURE);                                               \
