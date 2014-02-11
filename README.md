@@ -5,7 +5,7 @@ objects. That is, the first data member of all objects is stored contiguosly in
 memory, then the second data member, and so on as shown in the following figure: 
 
 ![Memory layout of standard and scattered
- containers](https://github.com/gnzlbg/scattered/blob/master/docs/img/memory_layout.svg
+ containers](https://rawgithub.com/gnzlbg/scattered/master/docs/img/memory_layout.svg
  "Memory layout of standard and scattered containers for a type containing an
  int, a bool, and a double as data members.")
 
