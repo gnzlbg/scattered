@@ -4,7 +4,7 @@ include(ExternalProject)
 
 ExternalProject_Add(catch
   GIT_REPOSITORY https://github.com/philsquared/Catch.git
-  TIMEOUT 5
+  TIMEOUT 1
   INSTALL_COMMAND "" # Disable install step
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
@@ -13,3 +13,5 @@ ExternalProject_Add(catch
 # Specify include dir
 ExternalProject_Get_Property(catch source_dir)
 set(CATCH_INCLUDE_DIR ${source_dir}/include PARENT_SCOPE)
+
+

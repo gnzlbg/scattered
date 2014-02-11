@@ -18,25 +18,24 @@
 /// false and ASSERT compiles to nothing! Still this happens after the
 /// compiler has verified the correctness of the ASSERT code.
 #ifndef NDEBUG
-#define ASSERT(condition, message)                                           \
-  do {                                                                       \
-    if (!(condition)) {                                                      \
+#define ASSERT(condition, message)                                      \
+  do {                                                                  \
+    if (!(condition)) {                                                 \
       fprintf(stderr, "\nAssertion %s failed in function: %s, in file: %s, at line: " \
-             "%i.\nDiagnostic message: %s\n\n",                         \
-             "" #condition "", __func__, __FILE__, __LINE__, message);       \
-      assert(false);                                                         \
-      std::exit(EXIT_FAILURE);                                               \
-    }                                                                        \
+              "%i.\nDiagnostic message: %s\n\n",                        \
+              "" #condition "", __func__, __FILE__, __LINE__, message); \
+      assert(false);                                                    \
+    }                                                                   \
   } while (false)
 #else
-#define ASSERT(condition, message)                                           \
-  do {                                                                       \
-    if (0 && (condition)) {                                                  \
+#define ASSERT(condition, message)                                      \
+  do {                                                                  \
+    if (0 && (condition)) {                                             \
       fprintf(stderr, "\nAssertion %s failed in function: %s, in file: %s, at line: " \
-             "%i.\nDiagnostic message: %s\n\n",                         \
-             "" #condition "", __func__, __FILE__, __LINE__, message);       \
-      std::exit(EXIT_FAILURE);                                               \
-    }                                                                        \
+              "%i.\nDiagnostic message: %s\n\n",                        \
+              "" #condition "", __func__, __FILE__, __LINE__, message); \
+      assert(true);                                                     \
+    }                                                                   \
   } while (false)
 #endif  // NDEBUG
 

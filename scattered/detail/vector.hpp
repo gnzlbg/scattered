@@ -43,7 +43,7 @@ class vector {
   template <class P> using key_of_t = typename key_of<P>::type;
   /// P -> P::value_type
   template <class P> struct val_of {
-    using type = typename P::second_type;
+    using type = typename detail::unqualified_t<P>::second_type;
   };
   /// T -> (key_of<member0>..key_of<memberN>)
   using keys = typename boost::mpl::transform
@@ -80,6 +80,7 @@ class vector {
   using const_pointer = typename const_iterator::pointer;
   using reverse_iterator = typename std::reverse_iterator<iterator>;
   using const_reverse_iterator = typename std::reverse_iterator<const_iterator>;
+  using scattered = bool;
   ///@}
 
   /// Constructors
@@ -88,7 +89,9 @@ class vector {
   vector(const vector& other) : data_(other.data_) {}
   vector(vector&& other) : data_(std::move(other.data_)) {}
 
+  [[gnu::always_inline, gnu::hot]] inline
   vector& operator=(const vector& other) { data_(other.data_); }
+  [[gnu::always_inline, gnu::hot]] inline
   vector& operator=(vector&& other) { data_(std::move(other.data_)); }
   ///@}
 
@@ -96,16 +99,19 @@ class vector {
   ///@{
  private:
   struct make_begin_it {
-    template <class U> auto operator()(U& i) const {
-      using key_type = typename key_of<U>::type;
-      using val_type = typename val_of<U>::type;
+    template <class U>
+    [[gnu::always_inline, gnu::hot, gnu::const]] inline
+    auto operator()(U& i) const noexcept {
       return boost::fusion::make_pair
-          <key_type>(const_cast<val_type&>(i.second).begin());
+          <typename key_of<U>::type>
+          (const_cast<typename val_of<U>::type&>(i.second).begin());
     }
   };
 
   struct make_cbegin_it {
-    template <class U> auto operator()(U& i) const {
+    template <class U>
+    [[gnu::always_inline, gnu::hot, gnu::const]] inline
+    auto operator()(U& i) const noexcept {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
       return boost::fusion::make_pair<key_type>(i.second.cbegin());
@@ -113,7 +119,9 @@ class vector {
   };
 
   struct make_end_it {
-    template <class U> auto operator()(U& i) const {
+    template <class U>
+     [[gnu::always_inline, gnu::hot, gnu::const]] inline
+    auto operator()(U& i) const noexcept {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
       return boost::fusion::make_pair
@@ -122,7 +130,9 @@ class vector {
   };
 
   struct make_cend_it {
-    template <class U> auto operator()(U& i) const {
+    template <class U>
+    [[gnu::always_inline, gnu::hot, gnu::const]] inline
+    auto operator()(U& i) const noexcept {
       using key_type = typename key_of<U>::type;
       using val_type = typename val_of<U>::type;
       return boost::fusion::make_pair<key_type>(i.second.cend());
@@ -130,32 +140,42 @@ class vector {
   };
 
  public:
-  inline iterator begin() {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  iterator begin() noexcept {
     return iterator::from_map(boost::fusion::transform(data_, make_begin_it()));
   }
-  inline iterator end() {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  iterator end() noexcept {
     return iterator::from_map(boost::fusion::transform(data_, make_end_it()));
   }
-  inline const_iterator cbegin() const {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_iterator cbegin() const noexcept {
     return const_iterator::from_map(
         boost::fusion::transform(data_, make_cbegin_it()));
   }
-  inline const_iterator cend() const {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_iterator cend() const noexcept {
     return const_iterator::from_map(
         boost::fusion::transform(data_, make_cend_it()));
   }
-  inline const_iterator begin() const { return cbegin(); }
-  inline const_iterator end() const { return cend(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_iterator begin() const noexcept { return cbegin(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_iterator end() const noexcept { return cend(); }
 
-  reverse_iterator rbegin() { return end(); }
-  reverse_iterator rend() { return begin(); }
-  const_reverse_iterator rbegin() const { return cend(); }
-  const_reverse_iterator rend() const { return cbegin(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reverse_iterator rbegin() noexcept { return end(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reverse_iterator rend() noexcept { return begin(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_reverse_iterator rbegin() const noexcept { return cend(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_reverse_iterator rend() const noexcept { return cbegin(); }
   ///@}
 
   /// Element Access
   ///@{
-  constexpr const_reference at(size_type pos) const {
+  inline constexpr const_reference at(const size_type pos) const noexcept {
     if (!(pos < size())) {
       throw std::out_of_range("scattered::vector::at(" + std::to_string(pos)
                               + ") is out of bounds [0,"
@@ -165,18 +185,30 @@ class vector {
       return (*this)[pos];
     }
   }
-  inline reference operator[](size_type pos) { return begin()[pos]; }
-  inline const_reference operator[](size_type pos) const {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference operator[](const size_type pos) noexcept { return begin()[pos]; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  const_reference operator[](const size_type pos) const noexcept {
     return cbegin()[pos];
   }
-  reference front() { return *begin(); }
-  constexpr const_reference front() const { return *cbegin(); }
-  reference back() { return *end(); }
-  constexpr const_reference back() const { return *cend(); }
-  data_type& data() { return data_; }
-  data_type const& data() const { return data_; }
-  template <class K> auto& data() { return get<K>(data_); }
-  template <class K> auto const& data() const { return get<K>(data_); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference front() noexcept { return *begin(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  constexpr const_reference front() const noexcept { return *cbegin(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference back() noexcept { return *end(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  constexpr const_reference back() const noexcept { return *cend(); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  data_type& data() noexcept { return data_; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  data_type const& data() const noexcept { return data_; }
+  template <class K>
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  auto& data() { return get<K>(data_); }
+  template <class K>
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  auto const& data() const { return get<K>(data_); }
   ///@}
 
   /// Capacity
@@ -290,44 +322,44 @@ class vector {
 
   /// Non-member functions
   ///@{
-  inline friend void swap(vector&& a, vector&& b) {
+  inline friend void swap(vector&& a, vector&& b) noexcept {
     data_type tmp = std::move(a.data_);
     a.data_ = std::move(b.data_);
     b.data_ = std::move(tmp);
   }
 
-  friend bool operator==(const vector& lhs, const vector& rhs) {
+  inline friend bool operator==(const vector& lhs, const vector& rhs) noexcept {
     return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
                               [](auto&& i) {
       return boost::fusion::at_c<0>(i) == boost::fusion::at_c<1>(i);
     });
   }
-  friend bool operator<=(const vector& lhs, const vector& rhs) {
+  inline friend bool operator<=(const vector& lhs, const vector& rhs) noexcept {
     return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
                               [](auto&& i) {
       return boost::fusion::at_c<0>(i) <= boost::fusion::at_c<1>(i);
     });
   }
-  friend bool operator>=(const vector& lhs, const vector& rhs) {
+  inline friend bool operator>=(const vector& lhs, const vector& rhs) noexcept {
     return boost::fusion::all(boost::fusion::zip(lhs.data_, rhs.data_),
                               [](auto&& i) {
       return boost::fusion::at_c<0>(i) >= boost::fusion::at_c<1>(i);
     });
   }
 
-  friend bool operator!=(const vector& lhs, const vector& rhs) {
+  inline friend bool operator!=(const vector& lhs, const vector& rhs) noexcept {
     return !(lhs == rhs);
   }
-
-  friend bool operator<(const vector& lhs, const vector& rhs) {
+  inline friend bool operator<(const vector& lhs, const vector& rhs) noexcept {
     return !(lhs == rhs && lhs >= rhs);
   }
-  friend bool operator>(const vector& lhs, const vector& rhs) {
+  inline friend bool operator>(const vector& lhs, const vector& rhs) noexcept {
     return !(lhs == rhs && lhs <= rhs);
   }
   ///@}
 
-  static T to_type(reference ref) {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  T to_type(reference ref) {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
@@ -335,9 +367,12 @@ class vector {
     });
     return tmp;
   }
-  static T& to_type(T& t) { return t; }
-  static T to_type(T&& t) { return t; }
-  static T to_type(const_reference ref) {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  T& to_type(T& t) { return t; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  T to_type(T&& t) { return t; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  T to_type(const_reference ref) {
     T tmp;
     boost::fusion::for_each(ref, [&](auto&& i) {
       using key = key_of_t<decltype(i)>;
@@ -345,11 +380,16 @@ class vector {
     });
     return tmp;
   }
-  static value_type& from_type(value_type& value) { return value; }
-  static value_type from_type(value_type&& value) { return value; }
-  static reference from_type(reference&& value) { return value; }
-  static reference& from_type(reference& value) { return value; }
-  static value_type from_type(T& value) {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  value_type& from_type(value_type& value) { return value; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  value_type from_type(value_type&& value) { return value; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  reference from_type(reference&& value) { return value; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  reference& from_type(reference& value) { return value; }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] static inline
+  value_type from_type(T& value) {
     value_type tmp;
     boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
                             [&](auto&& i) {
@@ -359,8 +399,6 @@ class vector {
     return tmp;
   }
 };
-
-// relational operators
 
 }  // namespace scattered
 

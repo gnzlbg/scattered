@@ -378,15 +378,15 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
     are_equal(new_vec4, ref);
     are_equal(vec, ref);
   }
-  SECTION("Adaptors: reversed") {
-    scattered::vector<TestType> e_ref;
-    scattered::vector<TestType> e_vec;
+  // SECTION("Adaptors: reversed") {
+  //   scattered::vector<TestType> e_ref;
+  //   scattered::vector<TestType> e_vec;
 
-    REQUIRE(e_vec == e_ref);
+  //   REQUIRE(e_vec == e_ref);
 
-    auto result = (e_vec | boost::adaptors::reversed) == e_ref;
-    REQUIRE(result);
-  }
+  //   auto result = (e_vec | boost::adaptors::reversed) == e_ref;
+  //   REQUIRE(result);
+  // }
   SECTION("Algorithm: stable_sort") {
     print_container("Initial values", vec);
     boost::stable_sort(
@@ -431,22 +431,22 @@ TEST_CASE("Test scattered::vector<T>", "[scattered][vector]") {
 
     print_container("After push_back", vec);
   }
-  SECTION("Algorithm: push_back | reversed ") {
-    scattered::vector<TestType> new_vec;
-    std::vector<TestType> new_ref;
+  // SECTION("Algorithm: push_back | reversed ") {
+  //   scattered::vector<TestType> new_vec;
+  //   std::vector<TestType> new_ref;
 
-    boost::push_back(new_ref, ref | boost::adaptors::reversed);
-    auto result = new_ref == (ref | boost::adaptors::reversed);
-    REQUIRE(result);
+  //   boost::push_back(new_ref, ref | boost::adaptors::reversed);
+  //   auto result = new_ref == (ref | boost::adaptors::reversed);
+  //   REQUIRE(result == true);
 
-    for(auto i : vec | boost::adaptors::reversed) {
-      std::cout << "(" << get<k::x>(i) << ", " << get<k::y>(i) << ", "
-                << get<k::i>(i) << ", " << get<k::b>(i) << ")\n";
-    }
+  //   for(auto i : vec | boost::adaptors::reversed) {
+  //     std::cout << "(" << get<k::x>(i) << ", " << get<k::y>(i) << ", "
+  //               << get<k::i>(i) << ", " << get<k::b>(i) << ")\n";
+  //   }
 
-    // boost::push_back(new_vec, vec | boost::adaptors::reversed);
-    are_equal(new_vec, new_ref);
+  //   // boost::push_back(new_vec, vec | boost::adaptors::reversed);
+  //   are_equal(new_vec, new_ref);
 
-    print_container("After push_back | reversed", vec);
-  }
+  //   print_container("After push_back | reversed", vec);
+  // }
 }

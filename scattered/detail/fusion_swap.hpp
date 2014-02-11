@@ -16,7 +16,9 @@ namespace boost {
 namespace fusion {
 
 /// \brief Swap function for fusion types
-template <class T> inline void swap(T&& lhs, T&& rhs) noexcept {
+template <class T>
+[[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+void swap(T&& lhs, T&& rhs) noexcept {
   using std::swap;
   scattered::detail::unqualified_t<T> tmp = lhs;
   lhs = std::move(rhs);

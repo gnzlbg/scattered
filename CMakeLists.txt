@@ -15,7 +15,6 @@ message("The compiler is: ${CMAKE_CXX_COMPILER}")
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
   # libcxx:
-  find_package(LIBCXX REQUIRED)
   include_directories(SYSTEM ${LIBCXX_INCLUDE_DIR})
   message("libcxx_include: ${LIBCXX_INCLUDE_DIR} | libcxx_lib: ${LIBCXX_LIBRARY}")
   set(CMAKE_EXE_LINKER_FLAGS " ${CMAKE_EXE_LINKER_FLAGS} -L${LIBCXX_LIBRARY} -lc++")
@@ -39,7 +38,7 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     "-Woverloaded-virtual" "-Wsign-promo" "-Wstrict-overflow=5"
     "-Wswitch-default" "-DGTEST_USE_OWN_TR1_TUPLE=1"
     "-fdiagnostics-show-template-tree" "-ftemplate-backtrace-limit=0"
-    "-Wno-attributes" "-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_TBB"
+    "-Wno-attributes" "-DFUSION_MAX_MAP_SIZE=40" "-DFUSION_MAX_VECTOR_SIZE=40"
     )
   set(CMAKE_CXX_FLAGS_DEBUG_LIST
     "-O1" "-g3" "-fstack-protector-all"
@@ -96,11 +95,13 @@ else()
 endif()
 
 # boost
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME ON)
-find_package(Boost 1.55 REQUIRED)
-include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+#set(Boost_USE_STATIC_LIBS OFF)
+#set(Boost_USE_MULTITHREADED ON)
+#set(Boost_USE_STATIC_RUNTIME ON)
+#find_package(Boost 1.55 REQUIRED)
+#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${BOOST_DIRS})
+include_directories(SYSTEM ./)
 
 # Catch (and enables unit testing)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch)
@@ -110,9 +111,15 @@ enable_testing(true)
 set(TESTING_INCLUDES ${CATCH_INCLUDE_DIR} )
 function(add_scattered_test name)
   include_directories(${TESTING_INCLUDES} ${COMMON_INCLUDES})
-  add_executable(${name} ${name}_test.cpp)
-  add_test(${name} ${name})
+  add_executable(${name}_test ${name}_test.cpp)
+  add_test(${name}_test ${name}_test)
 endfunction(add_scattered_test)
+
+function(add_benchmark name)
+  include_directories(${TESTING_INCLUDES} ${COMMON_INCLUDES})
+  add_executable(${name}_benchmark ${name}_benchmark.cpp)
+  add_test(${name}_benchmark ${name}_benchmark)
+endfunction(add_benchmark)
 
 # Doxygen (optional) - Enables "make docs"
 option(BUILD_DOCUMENTATION "Use Doxygen to create the HTML documentation" ON)
@@ -135,6 +142,7 @@ add_custom_target (clean ${CLEANUP_SCRIPT})
 
 # Subdirectories:
 add_subdirectory (./tests)
+add_subdirectory (./benchmarks)
 
 # Clang format
 file(GLOB_RECURSE files *.hpp *.cpp)

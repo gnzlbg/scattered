@@ -8,7 +8,7 @@
 #if !defined(SCATTERED_DETAIL_VECTOR_ITERATOR_BASE_HPP)
 #define SCATTERED_DETAIL_VECTOR_ITERATOR_BASE_HPP
 
-#include <cstddef>
+#include <cmath>
 #include <iterator>
 #include <type_traits>
 #include <boost/fusion/support/pair.hpp>
@@ -90,8 +90,8 @@ class vector_iterator_base {
   };
   template <class P> using key_of_t = typename key_of<P>::type;
 
-
-  static value_type from_type(original_value_type& value) {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline static
+  value_type from_type(original_value_type& value) {
     value_type tmp;
     boost::fusion::for_each(boost::fusion::zip(MemberMap{}, value),
                             [&](auto&& i) {
@@ -103,27 +103,42 @@ class vector_iterator_base {
   ///@}
 
   struct reference : reference_map {
+    using scattered = bool;
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(const reference& r) noexcept : reference_map(r) {};
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(const reference_map& r) noexcept : reference_map(r) {};
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(const value_type& v) noexcept : reference_map(ref_from_val(v)) {}
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(reference&& r) noexcept : reference_map(std::move(r)) {};
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(reference_map&& r) noexcept : reference_map(std::move(r)) {};
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     reference(value_type& v) noexcept : reference_map(ref_from_val(v)) {}
 
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(const value_type& other) RETURNS(assign_(other, *this));
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(const reference_map& other) RETURNS(assign_(other, *this));
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(const reference& other) RETURNS(assign_(other, *this));
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(value_type&& other)
         RETURNS(assign_(std::move(other), *this));
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(reference_map&& other)
         RETURNS(assign_(std::move(other), *this));
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(reference&& other) RETURNS(assign_(std::move(other), *this));
 
     /// \todo this should take a reference
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
     auto operator=(original_value_type other) RETURNS(assign_(from_type(other), *this));
 
     /// \todo refactor this
-    static original_value_type to_type(reference ref) {
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+    static original_value_type to_type(reference ref) noexcept {
       original_value_type tmp;
       boost::fusion::for_each(ref, [&](auto&& i) {
           using key = key_of_t<decltype(i)>;
@@ -132,31 +147,38 @@ class vector_iterator_base {
       return tmp;
     }
 
-    operator original_value_type() {
+    [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+    operator original_value_type() noexcept {
       return to_type(*this);
     }
 
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator==(L l, R r) noexcept {
       return boost::fusion::all(boost::fusion::zip(l, r), Eq());
     }
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator<=(L l, R r) noexcept {
       return boost::fusion::all(boost::fusion::zip(l, r), LEq());
     }
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator>=(L l, R r) noexcept {
       return boost::fusion::all(boost::fusion::zip(l, r), GEq());
     }
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator!=(L l, R r) noexcept {
       return !(l == r);
     }
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator<(L l, R r) noexcept {
       return !(l >= r);
     }
     template <class L, class R>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]]
     friend inline bool operator>(L l, R r) noexcept {
       return !(l <= r);
     }
@@ -166,34 +188,45 @@ class vector_iterator_base {
   /// DefaultConstructible/CopyConstructible/MoveConstructible
   /// @{
  private:
-  template <class T> static constexpr bool is_This_is_const_and_T_not() {
+  template <class T>
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
+  static constexpr bool is_This_is_const_and_T_not() noexcept {
     return std::is_same<detail::unqualified_t<T>, non_const_This>::value
            && std::is_same<This, const_This>::value;
   }
 
  public:
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   vector_iterator_base() = default;
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   vector_iterator_base(This const& it) noexcept : it_(it.it_) {}
   template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   vector_iterator_base(T const& it) noexcept : it_(it.it_) {}
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   This& operator=(This const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
   template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   This& operator=(T const& it) noexcept {
     it_ = it.it_;
     return *this;
   }
 
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   vector_iterator_base(This&& it) noexcept : it_(std::move(it.it_)) {}
   template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   vector_iterator_base(T&& it) noexcept : it_(std::move(it.it_)) {}
   template <class T, std::enable_if_t<is_This_is_const_and_T_not<T>(), int> = 0>
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   This& operator=(T&& it) noexcept {
     it_ = std::move(it.it_);
     return *this;
   }
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   This& operator=(This&& it) noexcept {
     it_ = std::move(it.it_);
     return *this;
@@ -203,64 +236,78 @@ class vector_iterator_base {
 
   /// \name Comparison operators (==, !=, <, >, <=, >=)
   ///@{
-  friend inline bool operator==(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator==(const This& l, const This& r) noexcept {
     return boost::fusion::all(boost::fusion::zip(l.it_, r.it_), Eq());
   }
-  friend inline bool operator<=(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator<=(const This& l, const This& r) noexcept {
     return boost::fusion::all(boost::fusion::zip(l.it_, r.it_), LEq());
   }
-  friend inline bool operator>=(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator>=(const This& l, const This& r) noexcept {
     return boost::fusion::all(boost::fusion::zip(l.it_, r.it_), GEq());
   }
-
-  friend inline bool operator!=(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator!=(const This& l, const This& r) noexcept {
     return !(l == r);
   }
-  friend inline bool operator<(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator<(const This& l, const This& r) noexcept {
     return !(l >= r);
   }
-  friend inline bool operator>(const This& l, const This& r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+  friend bool operator>(const This& l, const This& r) noexcept {
     return !(l <= r);
   }
   ///@}
 
   /// \name Traversal operators (++, +=, +, --, -=, -)
   ///@{
-  inline This& operator++() noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This& operator++() noexcept {
     it_ = boost::fusion::transform(it_, AdvFwd());
     return *this;
   }
-  inline This operator++(int) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This operator++(int) noexcept {
     const auto it = *this;
     ++(*this);
     return it;
   }
-  inline This& operator+=(const difference_type value) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This& operator+=(const difference_type value) noexcept {
     it_ = boost::fusion::transform(it_, Increment(value));
     return *this;
   }
-  inline This operator--(int) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This operator--(int) noexcept {
     const auto it = *this;
     --(*this);
     return it;
   }
-  inline This& operator-=(const difference_type value) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This& operator-=(const difference_type value) noexcept {
     it_ = boost::fusion::transform(it_, Decrement(value));
     return *this;
   }
-  inline This& operator--() noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  This& operator--() noexcept {
     it_ = boost::fusion::transform(it_, AdvBwd());
     return *this;
   }
 
-  friend inline This operator-(This a, const difference_type value) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  friend This operator-(This a, const difference_type value) noexcept {
     return a -= value;
   }
-  friend inline This operator+(This a, const difference_type value) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  friend This operator+(This a, const difference_type value) noexcept {
     return a += value;
   }
 
-  friend inline difference_type operator-(const This l, const This r) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+  friend difference_type operator-(const This l, const This r) noexcept {
     const auto result = boost::fusion::at_c<0>(l.it_).second
                         - boost::fusion::at_c<0>(r.it_).second;
 
@@ -273,10 +320,14 @@ class vector_iterator_base {
 
   /// \name Access operators
   ///@{
-  inline reference operator*() noexcept { return ref_from_it(it_); }
-  inline reference operator*() const noexcept { return ref_from_it(it_); }
-  inline reference operator->() noexcept { return *(*this); }
-  inline reference operator[](const difference_type v) noexcept {
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference operator*() noexcept { return ref_from_it(it_); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference operator*() const noexcept { return ref_from_it(it_); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference operator->() noexcept { return *(*this); }
+  [[gnu::always_inline, gnu::hot, gnu::pure, gnu::flatten]] inline
+  reference operator[](const difference_type v) noexcept {
     return ref_from_it(boost::fusion::transform(it_, Increment(v)));
   }
   ///@}
@@ -290,7 +341,8 @@ class vector_iterator_base {
   /// \brief Equality
   struct Eq {
     template <class T>
-    inline auto operator()(T&& i) const
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+    auto operator()(T&& i) const
         noexcept -> decltype(
                        std::enable_if_t
                        <!std::is_floating_point
@@ -307,6 +359,7 @@ class vector_iterator_base {
                                                  <1>(i).second;
     }
     template <class T>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
     inline auto operator()(T&& i) const
         noexcept -> decltype(
                        std::enable_if_t
@@ -328,7 +381,9 @@ class vector_iterator_base {
 
   /// \brief Less Equal Than
   struct LEq {
-    template <class T> inline bool operator()(T&& i) const noexcept {
+    template <class T>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+    bool operator()(T&& i) const noexcept {
       return boost::fusion::at_c<0>(i).second <= boost::fusion::at_c
                                                  <1>(i).second;
     }
@@ -336,7 +391,9 @@ class vector_iterator_base {
 
   /// \brief Greater Equal Than
   struct GEq {
-    template <class T> inline bool operator()(T&& i) const noexcept {
+    template <class T>
+    [[gnu::always_inline, gnu::hot, gnu::const, gnu::flatten]] inline
+    bool operator()(T&& i) const noexcept {
       return boost::fusion::at_c<0>(i).second >= boost::fusion::at_c
                                                  <1>(i).second;
     }
@@ -344,23 +401,29 @@ class vector_iterator_base {
 
   /// \brief Advance forward
   struct AdvFwd {
-    template <class T> inline auto operator()(T i) const noexcept {
-      return i.second = ++(i.second);
+    template <class T>
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+    auto operator()(T i) const noexcept {
+      return ++(i.second); // TODO: is this necessary?
     }
   };
 
   /// \brief Advance backward
   struct AdvBwd {
-    template <class T> inline auto operator()(T i) const noexcept {
-      return i.second = --(i.second);
+    template <class T>
+    [[gnu::always_inline, gnu::hot, gnu::flatten]] inline
+    auto operator()(T i) const noexcept {
+      return --(i.second); // TODO: is this necessary?
     }
   };
 
   /// \brief Increment by value
   struct Increment {
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     Increment(const difference_type value) noexcept : value_(value) {}
     template <class T>
-    inline detail::unqualified_t<T> operator()(T&& i) const noexcept {
+    [[gnu::hot, gnu::always_inline, gnu::pure, gnu::flatten]] inline
+    detail::unqualified_t<T> operator()(T&& i) const noexcept {
       return {i.second + value_};
     }
     const difference_type value_;
@@ -368,9 +431,11 @@ class vector_iterator_base {
 
   /// \brief Decrent by value
   struct Decrement {
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     Decrement(const difference_type value) : value_(value) {}
     template <class T>
-    inline detail::unqualified_t<T> operator()(T&& i) const noexcept {
+    [[gnu::hot, gnu::always_inline, gnu::pure, gnu::flatten]] inline
+    detail::unqualified_t<T> operator()(T&& i) const noexcept {
       return {i.second - value_};
     }
     const difference_type value_;
@@ -378,7 +443,8 @@ class vector_iterator_base {
 
   struct check_distance {
     template <class T, class U>
-    inline T operator()(const T acc, const U i) const noexcept {
+    [[gnu::hot, gnu::always_inline, gnu::const, gnu::flatten]] inline
+    T operator()(const T acc, const U i) const noexcept {
       const auto tmp = boost::fusion::at_c<0>(i).second - boost::fusion::at_c
                                                           <1>(i).second;
       ASSERT(acc == tmp, "column types have different sizes!");
@@ -389,8 +455,11 @@ class vector_iterator_base {
   ///@}
 
   template <class U> struct val_to_ref {
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     val_to_ref(U& v_) : v(v_) {}
-    template <class T> inline auto operator()(const T&) const noexcept {
+    template <class T>
+    [[gnu::hot, gnu::always_inline, gnu::pure, gnu::flatten]] inline
+    auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
       using value = typename T::second_type;
       return boost::fusion::make_pair<key, std::add_lvalue_reference_t<value>>(
@@ -400,8 +469,11 @@ class vector_iterator_base {
   };
 
   template <class U> struct it_to_ref {
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     it_to_ref(U v_) : i(v_) {}
-    template <class T> inline auto operator()(const T&) const noexcept {
+    template <class T>
+    [[gnu::hot, gnu::always_inline, gnu::pure, gnu::flatten]] inline
+    auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
       using value = detail::unqualified_t<decltype(*typename T::second_type())>;
       return boost::fusion::make_pair<key, std::add_lvalue_reference_t<value>>(
@@ -411,8 +483,11 @@ class vector_iterator_base {
   };
 
   template <class U> struct it_to_cit {
+    [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
     it_to_cit(U v_) : i(v_) {}
-    template <class T> inline auto operator()(const T&) const noexcept {
+    template <class T>
+    [[gnu::hot, gnu::always_inline, gnu::pure, gnu::flatten]] inline
+    auto operator()(const T&) const noexcept {
       using key = typename T::first_type;
       using value = detail::unqualified_t<decltype(typename T::second_type())>;
       return boost::fusion::make_pair
@@ -423,28 +498,33 @@ class vector_iterator_base {
   };
 
  public:
+  [[gnu::hot, gnu::always_inline, gnu::flatten]]
   static inline reference_map ref_from_val(value_type& v) noexcept {
     return boost::fusion::transform(v, val_to_ref<value_type>{v});
   }
+  [[gnu::hot, gnu::always_inline, gnu::flatten]]
   static inline reference_map ref_from_it(iterator_map& v) noexcept {
     return boost::fusion::transform(v, it_to_ref<iterator_map>{v});
   }
+  [[gnu::hot, gnu::always_inline, gnu::flatten]]
   static inline reference_map ref_from_it(const iterator_map& v) noexcept {
     return boost::fusion::transform(v, it_to_ref<iterator_map>{v});
   }
-
+  [[gnu::hot, gnu::always_inline, gnu::flatten]]
   static inline const_This cit_from_it(const This& v) noexcept {
     return const_This::from_map(
         boost::fusion::transform(v.it_, it_to_cit<iterator_map>{v.it_}));
   }
-
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   static vector_iterator_base from_map(iterator_map it) {
     This tmp;
     tmp.it_ = it;
     return tmp;
   }
 
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   auto it() RETURNS(it_);
+  [[gnu::hot, gnu::always_inline, gnu::flatten]] inline
   auto it() const RETURNS(it_);
 };
 

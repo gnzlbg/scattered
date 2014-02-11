@@ -1,10 +1,11 @@
 #!/bin/bash
 echo "Configuring Scattered Containers..."
 
-./tools/cleanup.sh
+#./tools/cleanup.sh
 
 export CMAKE_FLAGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
--DLIBCXX_INCLUDE_DIR=\"${LIBCXX_INCLUDE}\" -DLIBCXX_LIBRARY=\"${LIBCXX_LIB}\""
+-DLIBCXX_INCLUDE_DIR=\"${LIBCXX_INCLUDE}\" -DLIBCXX_LIBRARY=\"${LIBCXX_LIB}\" \
+-DBOOST_DIRS=\"~/Users/gnzlbg/Downloads/boost_1_54_0/boost\""
 
 echo "Running cmake..."
 while getopts "dramthx" option

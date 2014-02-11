@@ -51,7 +51,9 @@ template <class FusionAssociativeSequence> struct as_fusion_map {
   using type = typename boost::fusion::result_of::as_map
       <typename to_fusion_map_iter<boost::mpl::vector<>, First, Last,
                                    typename boost::fusion::result_of::equal_to
-                                   <First, Last>::type>::type>::type;
+                                   <First, Last>::type
+                                   >::type
+       >::type;
 };
 
 }  // namespace detail

@@ -21,7 +21,9 @@ namespace detail {
 
 template <class Output, class Predicate> struct map_mutator {
   map_mutator(Output& map) : map_out(map) {}
-  template <class InputPair> void operator()(const InputPair& inputPair) const {
+  template <class InputPair>
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline 
+  void operator()(const InputPair& inputPair) const {
     Predicate()(inputPair, map_out);
   }
   Output& map_out;
@@ -29,6 +31,7 @@ template <class Output, class Predicate> struct map_mutator {
 
 struct assign {
   template <class Input, class Output>
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline 
   void operator()(const Input& i, Output& o) const {
     boost::fusion::at_key<typename Input::first_type>(o) = i.second;
   }
@@ -36,6 +39,7 @@ struct assign {
 
 struct assign_dereference {
   template <class Input, class Output>
+  [[gnu::always_inline, gnu::hot, gnu::flatten]] inline 
   void operator()(const Input& i, Output& o) const {
     boost::fusion::at_key<typename Input::first_type>(o) = *i.second;
   }

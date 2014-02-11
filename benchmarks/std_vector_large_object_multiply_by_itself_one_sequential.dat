@@ -1,0 +1,3 @@
+# Benchmark: std_vector<large_object>               op: multiply_by_itself_one                        ap: sequential                                    
+
+            20000000           266571901
