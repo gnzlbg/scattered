@@ -19,7 +19,7 @@ The following containers are available:
 Scattered is a [Boost Software License](http://www.boost.org/LICENSE_1_0.txt)'d
 header only C++1y library and is tested with Boost 1.54 (1.55 not supported yet,
 see issue tracker) and trunk clang/libc++. It depends on [Boost.MPL]() and
-[Boost.Fusion].
+[Boost.Fusion]().
 
 ##### Example: `scattered::vector<T>`
 
@@ -82,7 +82,7 @@ int main() {
 ##### Caveats
 
 Scattered containers use proxy reference types and, as a consequence, have the
-following caveats (which are very similar to thse of `std::vector<bool>`):
+following caveats similar to those of `std::vector<bool>`:
 
 ```c++
 // i's type = scattered::vector<T>::reference, not scattered::vector<T>::value_type
@@ -96,6 +96,9 @@ i = T{};
 
 // to get a value you need to use value_type (or T)
 T value = *scatteredVector.begin();
+
+// This fails because T& cannot bind to scattered::vector<T>::reference&
+T& ref = *catteredVector.begin();  // Compilation Error
 ```
 
 ##### Main idea behind implementation
